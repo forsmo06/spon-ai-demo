@@ -15,7 +15,6 @@ col1, col2 = st.columns(2)
 LOGG_FIL = "fuktlogg.csv"
 MODELL_FIL = "fuktmodell.pkl"
 
-
 def logg_data(data):
     df = pd.DataFrame([data])
     if os.path.exists(LOGG_FIL):
@@ -23,6 +22,14 @@ def logg_data(data):
         df = pd.concat([df_existing, df], ignore_index=True)
     df.to_csv(LOGG_FIL, index=False)
 
+# === Vis status for antall prøver uansett ===
+if os.path.exists(LOGG_FIL):
+    df = pd.read_csv(LOGG_FIL)
+    antall = len(df)
+    if antall < 10:
+        st.sidebar.info(f"📊 Antall prøver: {antall} av 10 – AI ikke aktiv ennå")
+    else:
+        st.sidebar.success(f"🤖 AI aktiv ✅ – basert på {antall} prøver")
 
 # === VENSTRE SIDE: INNSTILLINGER ===
 with col1:
@@ -84,14 +91,6 @@ with col2:
         st.warning("ℹ️ Trykk ovn avviker fra anbefalt -270 Pa")
     else:
         st.success("✅ Trykk ovn OK")
-
-    if os.path.exists(LOGG_FIL):
-        df = pd.read_csv(LOGG_FIL)
-        antall = len(df)
-        if antall < 10:
-            st.info(f"📊 Antall prøver: {antall} av 10 – AI ikke aktiv ennå")
-        else:
-            st.success(f"🤖 AI aktiv ✅ – basert på {antall} prøver")
 
     if st.button("📥 Loggfør denne prøven"):
         logg_data({
