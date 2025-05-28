@@ -27,15 +27,14 @@ with col2:
     st.header("📈 Resultat")
 
     def beregn_fukt(brenn, g105, g106, frisk, prim, trykk, hombak, maier):
-        # Økt vekt på utløpstemp, redusert innflytelse fra friskluft og primærluft
         return round(
             2.0
-            - (g106 - 130) * 0.055  # Utløpstemp har størst påvirkning
-            + (frisk - 60) * 0.005
-            + (prim - 30) * 0.005
-            + ((trykk + 270) / 100) * 0.15
-            + (hombak - 50) * 0.012
-            + (maier - 50) * 0.01,
+            - (g106 - 130) * 0.07        # Økt vekt på utløpstemp
+            + (frisk - 60) * 0.005       # Lavere vekt friskluft
+            + (prim - 30) * 0.004        # Lavere vekt primærluft
+            + ((trykk + 270) / 100) * 0.2
+            + (hombak - 50) * 0.008      # Litt lavere vekt
+            + (maier - 50) * 0.006,
             2
         )
 
