@@ -35,7 +35,8 @@ with col1:
 
     bruk_ai = st.checkbox("⚙️ Bruk AI-forslag i innstillingene", value=False)
 
-    st.header("🧠 Smart justering: luft og mating først")
+    st.header("🧠 Smart justering: utløpstemp først, mating sekundært")
+    st.caption("ℹ️ Normalt ligger fukt mellom 0.65–1.35 % når utløpstemp er 133–136 °C for 22mm gulvplate.")
     smartrun = st.button("🎯 Foreslå justeringer for å nå ønsket fukt")
 
     def beregn_fukt(g105, g106, frisk, prim, trykk, hombak, maier):
@@ -54,7 +55,6 @@ with col1:
     smart_justering = ""
 
     if smartrun:
-        # Simulert nåværende verdier
         nå_fukt = beregn_fukt(400, 135, 60, 30, -270, 50, 50)
         diff = round(ai_target_fukt - nå_fukt, 2)
         smart_justering = ""
@@ -64,13 +64,12 @@ with col1:
         else:
             if diff > 0:
                 smart_justering += "🔼 Fukt er for lav – prøv dette:\n"
+                smart_justering += "• Senk utløpstemp med 1 °C\n"
                 smart_justering += "• Øk hombak-mating med 5 %\n"
-                smart_justering += "• Senk primærluft med 5 %\n"
             else:
                 smart_justering += "🔽 Fukt er for høy – prøv dette:\n"
-                smart_justering += "• Reduser hombak med 5 %\n"
-                smart_justering += "• Øk primærluft med 5 %\n"
-            smart_justering += "📉 Hvis det ikke virker etter én prøve, vurder å justere utløpstemp 1 °C"
+                smart_justering += "• Øk utløpstemp med 1 °C\n"
+                smart_justering += "• Reduser hombak-mating med 5 %\n"
 
         st.code(smart_justering)
 
