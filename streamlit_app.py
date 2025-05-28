@@ -85,6 +85,14 @@ with col2:
     else:
         st.success("✅ Trykk ovn OK")
 
+    if os.path.exists(LOGG_FIL):
+        df = pd.read_csv(LOGG_FIL)
+        antall = len(df)
+        if antall < 10:
+            st.info(f"📊 Antall prøver: {antall} av 10 – AI ikke aktiv ennå")
+        else:
+            st.success(f"🤖 AI aktiv ✅ – basert på {antall} prøver")
+
     if st.button("📥 Loggfør denne prøven"):
         logg_data({
             "timestamp": datetime.now().isoformat(),
