@@ -18,13 +18,21 @@ def lagre_prove(data):
     return len(df)
 
 def tren_model(df):
-    # Sørg for at alle nødvendige kolonner finnes i df
-    forventede_kolonner = ["brennkammertemp", "innløpstemp", "utløpstemp", "friskluft", "primluft", "trykkovn", "hombak", "maier"]
+    forventede_kolonner = [
+        "brennkammertemp",
+        "innlop_temp",
+        "utlop_temp",
+        "friskluft",
+        "primluft",
+        "trykk_ovn",
+        "hombak",
+        "maier"
+    ]
     for kol in forventede_kolonner:
         if kol not in df.columns:
             st.error(f"Data mangler kolonnen '{kol}'. Kan ikke trene modellen.")
             return None
-    
+
     X = df[forventede_kolonner]
     y = df["beregnet_fukt"]
     model = LinearRegression()
@@ -38,20 +46,20 @@ if os.path.exists(FILENAME):
     df = pd.read_csv(FILENAME)
 else:
     df = pd.DataFrame(columns=[
-        "timestamp", "ønsket_fukt", "beregnet_fukt", "brennkammertemp", "innløpstemp",
-        "utløpstemp", "friskluft", "primluft", "trykkovn", "hombak", "maier"
+        "timestamp", "onsket_fukt", "beregnet_fukt", "brennkammertemp", "innlop_temp",
+        "utlop_temp", "friskluft", "primluft", "trykk_ovn", "hombak", "maier"
     ])
 
 # Inputfelt for ny prøve
-with st.form("ny_prøve"):
-    ønsket_fukt = st.number_input("Ønsket fukt (%)", min_value=0.0, format="%.2f")
+with st.form("ny_prove"):
+    onsket_fukt = st.number_input("Ønsket fukt (%)", min_value=0.0, format="%.2f")
     beregnet_fukt = st.number_input("Beregnet fukt (%)", min_value=0.0, format="%.2f")
     brennkammertemp = st.number_input("Brennkammertemp (°C)", value=790)
-    innløpstemp = st.number_input("Innløpstemp (°C)", value=400)
-    utløpstemp = st.number_input("Utløpstemp (°C)", value=135)
+    innlop_temp = st.number_input("Innløpstemp (°C)", value=400)
+    utlop_temp = st.number_input("Utløpstemp (°C)", value=135)
     friskluft = st.number_input("Friskluft (%)", value=12)
     primluft = st.number_input("Primærluft (%)", value=3)
-    trykkovn = st.number_input("Trykk ovn (Pa)", value=-270)
+    trykk_ovn = st.number_input("Trykk ovn (Pa)", value=-270)
     hombak = st.number_input("Utmating Hombak (%)", value=78)
     maier = st.number_input("Utmating Maier (%)", value=25)
     submit = st.form_submit_button("Loggfør prøve")
@@ -59,14 +67,14 @@ with st.form("ny_prøve"):
 if submit:
     ny_prove = {
         "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-        "ønsket_fukt": ønsket_fukt,
+        "onsket_fukt": onsket_fukt,
         "beregnet_fukt": beregnet_fukt,
         "brennkammertemp": brennkammertemp,
-        "innløpstemp": innløpstemp,
-        "utløpstemp": utløpstemp,
+        "innlop_temp": innlop_temp,
+        "utlop_temp": utlop_temp,
         "friskluft": friskluft,
         "primluft": primluft,
-        "trykkovn": trykkovn,
+        "trykk_ovn": trykk_ovn,
         "hombak": hombak,
         "maier": maier,
     }
@@ -81,8 +89,7 @@ st.dataframe(df)
 if len(df) >= 10:
     model = tren_model(df)
     if model:
-        # Lag input fra nåværende sliderverdier for prediksjon
-        input_data = np.array([[brennkammertemp, innløpstemp, utløpstemp, friskluft, primluft, trykkovn, hombak, maier]])
+        input_data = np.array([[brennkammertemp, innlop_temp, utlop_temp, friskluft, primluft, trykk_ovn, hombak, maier]])
         pred_fukt = model.predict(input_data)[0]
         st.subheader("AI Beregning")
         st.write(f"Basert på modellen: Beregnet fukt bør være ca. {pred_fukt:.2f} %")
