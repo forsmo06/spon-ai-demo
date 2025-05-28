@@ -21,23 +21,23 @@ def logg_data(data):
         df = pd.concat([df_existing, df], ignore_index=True)
     df.to_csv(LOGG_FIL, index=False)
 
-def les_antall_prover():
+def vis_status_antall_prover():
     if os.path.exists(LOGG_FIL):
         df = pd.read_csv(LOGG_FIL)
-        return len(df)
-    return 0
+        antall = len(df)
+        if antall < 10:
+            st.sidebar.info(f"📊 Antall prøver: {antall} av 10 – AI ikke aktiv ennå")
+        else:
+            st.sidebar.success(f"🤖 AI aktiv ✅ – basert på {antall} prøver")
+    else:
+        st.sidebar.info("📊 Ingen prøver logget enda – AI ikke aktiv")
 
-# --- MAIN ---
-
-# Lag en session_state for antall prøver slik at vi kan oppdatere dynamisk
-if "antall_prover" not in st.session_state:
-    st.session_state.antall_prover = les_antall_prover()
-
-# VENSTRE SIDE: INNSTILLINGER
+# === VENSTRE SIDE: INNSTILLINGER ===
 with col1:
     st.header("🔧 Justeringer")
 
     target_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.36)
+
     brennkammer = st.slider("Brennkammertemp (°C)", 600, 1000, 794)
     temp_til = st.slider("Innløpstemp (G80GT105) (°C)", 250, 700, 403)
     temp_ut = st.slider("Utløpstemp (G80GT106) (°C)", 100, 180, 133)
@@ -47,7 +47,7 @@ with col1:
     hombak = st.slider("Utmating Hombak (%)", 0, 100, 78)
     maier = st.slider("Utmating Maier (%)", 0, 100, 25)
 
-# AI-BEREGNING
+# === AI-BEREGNING ===
 def beregn_med_ai(data):
     if not os.path.exists(LOGG_FIL):
         return None
@@ -60,7 +60,7 @@ def beregn_med_ai(data):
     data_df = pd.DataFrame([data])
     return round(model.predict(data_df)[0], 2)
 
-# HØYRE SIDE: RESULTAT
+# === HØYRE SIDE: RESULTAT ===
 with col2:
     st.header("📈 Resultat")
 
@@ -76,7 +76,7 @@ with col2:
     }
 
     ai_fukt = beregn_med_ai(input_data)
-    fukt = ai_fukt if ai_fukt is not None else 1.0  # fallback
+    fukt = ai_fukt if ai_fukt is not None else 1.0  # fallback til dummy-verdi hvis ingen AI ennå
     diff = round(fukt - target_fukt, 2)
 
     st.metric("🔹 Beregnet fukt", f"{fukt:.2f} %")
@@ -101,11 +101,11 @@ with col2:
             **input_data
         })
         st.success("✅ Prøve lagret til fuktlogg.csv")
-        # Oppdater antall prøver i session_state
-        st.session_state.antall_prover = les_antall_prover()
 
-    # Vis antall prøver i sidebaren
-    if st.session_state.antall_prover < 10:
-        st.sidebar.info(f"📊 Antall prøver: {st.session_state.antall_prover} av 10 – AI ikke aktiv ennå")
-    else:
-        st.sidebar.success(f"🤖 AI aktiv ✅ – basert på {st.session_state.antall_prover} prøver")
+        # Oppdater status etter logging
+        vis_status_antall_prover()
+
+    st.info("ℹ️ Når minst 10 prøver er lagret, vil AI begynne å lære og brukes i beregningene.")
+
+# Vis status ved oppstart av appen
+vis_status_antall_prover()
