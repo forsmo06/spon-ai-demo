@@ -15,51 +15,59 @@ with col1:
     kommando = st.text_input("Skriv kommando (f.eks. 'Still inn til 1.10% fuktighet')")
 
     # Standardverdier
-    target_fukt = 1.20
-    temp_til = 400
-    temp_ut = 135
-    friskluft = 60
-    primluft = 30
-    trykkovn = -270
-    hombak = 50
-    maier = 50
+    ai_target_fukt = 1.20
+    ai_temp_til = 400
+    ai_temp_ut = 135
+    ai_friskluft = 60
+    ai_primluft = 30
+    ai_trykkovn = -270
+    ai_hombak = 50
+    ai_maier = 50
 
     # Enkle regler for parsing
     if "fukt" in kommando.lower():
         match = re.search(r"(\d+[.,]?\d*)\s*%?\s*fukt", kommando)
         if match:
-            target_fukt = float(match.group(1).replace(",", "."))
+            ai_target_fukt = float(match.group(1).replace(",", "."))
 
     if "hombak" in kommando.lower():
         match = re.search(r"hombak.*?(\d+)%", kommando)
         if match:
-            hombak = int(match.group(1))
+            ai_hombak = int(match.group(1))
 
     if "maier" in kommando.lower():
         match = re.search(r"maier.*?(\d+)%", kommando)
         if match:
-            maier = int(match.group(1))
+            ai_maier = int(match.group(1))
 
     if "utløp" in kommando.lower():
         match = re.search(r"utløp.*?(\d+)", kommando)
         if match:
-            temp_ut = int(match.group(1))
+            ai_temp_ut = int(match.group(1))
 
     if "innløp" in kommando.lower():
         match = re.search(r"innløp.*?(\d+)", kommando)
         if match:
-            temp_til = int(match.group(1))
+            ai_temp_til = int(match.group(1))
+
+    st.write("✳️ AI-forslag fra kommando:")
+    st.write(f"• Ønsket fukt: {ai_target_fukt} %")
+    st.write(f"• Innløpstemp: {ai_temp_til} °C")
+    st.write(f"• Utløpstemp: {ai_temp_ut} °C")
+    st.write(f"• Hombak: {ai_hombak} %, Maier: {ai_maier} %")
+
+    bruk_ai = st.checkbox("⚙️ Bruk AI-forslag i innstillingene", value=False)
 
     st.header("🔧 Justeringer")
 
-    target_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=target_fukt)
-    temp_til = st.slider("G80GT105 – Innløpstemp (°C)", 250, 700, temp_til)
-    temp_ut = st.slider("G80GT106 – Utløpstemp (°C)", 100, 180, temp_ut)
-    friskluft = st.slider("GS5P101 – Friskluft (Forbrenning av støv) (%)", 0, 100, friskluft)
-    primluft = st.slider("GS5F101 – Primærluftsflekt (%)", 0, 100, primluft)
-    trykkovn = st.slider("G80GP101 – Trykk ovn (Pa)", -500, 0, trykkovn)
-    hombak = st.slider("Utmating Hombak (%)", 0, 100, hombak)
-    maier = st.slider("Utmating Maier (%)", 0, 100, maier)
+    target_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=ai_target_fukt if bruk_ai else 1.20)
+    temp_til = st.slider("G80GT105 – Innløpstemp (°C)", 250, 700, ai_temp_til if bruk_ai else 400)
+    temp_ut = st.slider("G80GT106 – Utløpstemp (°C)", 100, 180, ai_temp_ut if bruk_ai else 135)
+    friskluft = st.slider("GS5P101 – Friskluft (Forbrenning av støv) (%)", 0, 100, ai_friskluft)
+    primluft = st.slider("GS5F101 – Primærluftsflekt (%)", 0, 100, ai_primluft)
+    trykkovn = st.slider("G80GP101 – Trykk ovn (Pa)", -500, 0, ai_trykkovn)
+    hombak = st.slider("Utmating Hombak (%)", 0, 100, ai_hombak if bruk_ai else 50)
+    maier = st.slider("Utmating Maier (%)", 0, 100, ai_maier if bruk_ai else 50)
 
     st.divider()
     st.subheader("📐 Sensorjustering og prøvemåling")
