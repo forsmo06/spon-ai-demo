@@ -29,8 +29,10 @@ with col2:
     def beregn_fukt(brenn, g105, g106, frisk, prim, trykk, hombak, maier):
         return round(
             0.91
-            - (g106 - 134) * 0.55     # Økt vekt på utløpstemp
-            + (prim - 7) * 0.002      # Justert vekt primærluft
+            - (g106 - 134) * 0.8       # Økt vekt på utløpstemp
+            - (g105 - 400) * 0.01      # Liten negativ effekt av høy innløpstemp
+            - (brenn - 800) * 0.001    # Svak negativ vekt på høy brennkammer
+            + (prim - 7) * 0.002       # Liten effekt av primærluft
             + ((trykk + 270) / 100) * 0.03
             + (hombak - 70) * 0.004
             + (maier - 20) * 0.0025,
