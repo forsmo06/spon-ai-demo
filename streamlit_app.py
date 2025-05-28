@@ -1,11 +1,24 @@
 import streamlit as st
 import numpy as np
+import pandas as pd
+import os
+from datetime import datetime
 
 st.set_page_config(layout="wide")
 
 st.title("📊 Fuktstyring – AI & Manuell (Ipaar-stil)")
 
 col1, col2 = st.columns(2)
+
+# === Funksjon for logging av prøver ===
+LOGG_FIL = "fuktlogg.csv"
+
+def logg_data(data):
+    df = pd.DataFrame([data])
+    if os.path.exists(LOGG_FIL):
+        df_existing = pd.read_csv(LOGG_FIL)
+        df = pd.concat([df_existing, df], ignore_index=True)
+    df.to_csv(LOGG_FIL, index=False)
 
 # === VENSTRE SIDE: INNSTILLINGER ===
 with col1:
@@ -55,3 +68,19 @@ with col2:
         st.warning("ℹ️ Trykk ovn avviker fra anbefalt -270 Pa")
     else:
         st.success("✅ Trykk ovn OK")
+
+    if st.button("📥 Loggfør denne prøven"):
+        logg_data({
+            "timestamp": datetime.now().isoformat(),
+            "ønsket_fukt": target_fukt,
+            "beregnet_fukt": fukt,
+            "brennkammertemp": brennkammer,
+            "innløpstemp": temp_til,
+            "utløpstemp": temp_ut,
+            "friskluft": friskluft,
+            "primluft": primluft,
+            "trykkovn": trykkovn,
+            "hombak": hombak,
+            "maier": maier
+        })
+        st.success("✅ Prøve lagret til fuktlogg.csv")
