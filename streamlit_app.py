@@ -1,9 +1,9 @@
 import streamlit as st
 import numpy as np
 
-st.title("Fuktprognose – AI-styrt manuelt panel")
+st.title("Fuktprognose – AI-styrt med Hombak og Maier 0–100 %")
 
-st.markdown("🧠 Fyll inn ønsket fukt – AI foreslår verdier. Du kan justere manuelt etterpå.")
+st.markdown("🧠 Skriv ønsket fukt – AI gir forslag. Juster selv hvis du vil.")
 
 # === Modell for fuktberegning ===
 def beregn_fukt(g105, g106, frisk, prim, trykk, hombak, maier):
@@ -14,8 +14,8 @@ def beregn_fukt(g105, g106, frisk, prim, trykk, hombak, maier):
         + (frisk - 60) * 0.015
         + (prim - 30) * 0.012
         + ((trykk + 270) / 100) * 0.3
-        + (hombak - 20) * 0.02
-        + (maier - 20) * 0.04,
+        + (hombak - 50) * 0.015  # balansert rundt 50 %
+        + (maier - 50) * 0.03,   # maier har mer effekt
         2
     )
 
@@ -28,11 +28,11 @@ beste_kombinasjon = None
 
 for g105 in range(350, 461, 5):
     for g106 in range(130, 161, 5):
-        for frisk in range(45, 66, 3):
-            for prim in range(20, 41, 3):
+        for frisk in range(45, 66, 5):
+            for prim in range(20, 41, 5):
                 for trykk in range(-290, -249, 5):
-                    for hombak in range(10, 31, 5):
-                        for maier in range(10, 31, 5):
+                    for hombak in range(0, 101, 20):
+                        for maier in range(0, 101, 20):
                             fukt = beregn_fukt(g105, g106, frisk, prim, trykk, hombak, maier)
                             diff = abs(fukt - target_fukt)
                             if diff < beste_diff:
@@ -50,8 +50,8 @@ if beste_kombinasjon:
     friskluft = st.slider("GS5P101 – Friskluftspjeld (%)", 0, 100, ai_frisk)
     primluft = st.slider("GS5F101 – Primærluftsflekt (%)", 0, 100, ai_prim)
     trykkovn = st.slider("G80GP101 – Tryckugn (Pa)", -500, 0, ai_trykk)
-    hombak_mating = st.slider("Hombak-mating (%)", 10, 40, ai_hombak)
-    maier_mating = st.slider("Maier-mating (%)", 10, 40, ai_maier)
+    hombak_mating = st.slider("Hombak-mating (%)", 0, 100, ai_hombak)
+    maier_mating = st.slider("Maier-mating (%)", 0, 100, ai_maier)
 
     # Oppdatert fukt etter manuell justering
     fukt_manuell = beregn_fukt(temp_til, temp_ut, friskluft, primluft, trykkovn, hombak_mating, maier_mating)
@@ -62,9 +62,9 @@ if beste_kombinasjon:
     if fukt_manuell > 2.5:
         st.error("⚠️ For høy fukt – vurder mindre mating eller mer varme.")
     elif fukt_manuell < 1.2:
-        st.warning("⚠️ For tørr spon – vurder mer mating eller mindre varme.")
+        st.warning("⚠️ For tørr spon – vurder mer mating eller friskluft.")
     else:
-        st.success("✅ Fukt innenfor målområdet.")
+        st.success("✅ Fukt innenfor målområde.")
 
 else:
-    st.warning("Fant ingen forslag – juster ønsket fukt eller verdier.")
+    st.warning("Fant ingen forslag – juster ønsket fukt eller parametergrenser.")
