@@ -1,56 +1,38 @@
-import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime
 
-LOGG_FIL = "fuktlogg.csv"
+FILENAME = "fuktlogg.csv"  # Navnet på CSV-filen som prøvene lagres i
 
-def lagre_prøve(data):
-    # Hvis fil ikke eksisterer, oppretter vi ny DataFrame med kolonner
-    if not os.path.exists(LOGG_FIL):
-        df = pd.DataFrame(columns=data.keys())
-        df = df.append(data, ignore_index=True)
-        df.to_csv(LOGG_FIL, index=False)
+def lagre_prove(data):
+    """
+    Logger en ny prøve til CSV-fil.
+    Data må være en dict med kolonnenavn som nøkler.
+    """
+    df_ny = pd.DataFrame([data])
+    
+    if os.path.exists(FILENAME):
+        df_eksisterende = pd.read_csv(FILENAME)
+        df = pd.concat([df_eksisterende, df_ny], ignore_index=True)
     else:
-        df = pd.read_csv(LOGG_FIL)
-        df = df.append(data, ignore_index=True)
-        df.to_csv(LOGG_FIL, index=False)
+        df = df_ny
+        
+    df.to_csv(FILENAME, index=False)
+    print(f"Prøve lagret! Totalt antall prøver: {len(df)}")
 
-def hent_antall():
-    if os.path.exists(LOGG_FIL):
-        df = pd.read_csv(LOGG_FIL)
-        return len(df)
-    return 0
 
-st.title("Ny Fuktlogg - Logger prøver til CSV")
-
-antall = hent_antall()
-st.write(f"Antall prøver lagret: {antall}")
-
-ønsket_fukt = st.number_input("Ønsket fukt (%)", min_value=0.0, max_value=10.0, value=1.36, step=0.01)
-brennkammertemp = st.slider("Brennkammertemp (°C)", 600, 1000, 794)
-innløpstemp = st.number_input("Innløpstemp (°C)", 0, 1000, 403)
-utløpstemp = st.number_input("Utløpstemp (°C)", 0, 1000, 133)
-friskluft = st.number_input("Friskluft (%)", 0, 100, 12)
-primluft = st.number_input("Primærluft (%)", 0, 100, 3)
-trykkovn = st.number_input("Trykk ovn (Pa)", -500, 0, -270)
-hombak = st.number_input("Utmating Hombak (%)", 0, 100, 78)
-maier = st.number_input("Utmating Maier (%)", 0, 100, 25)
-
-if st.button("Loggfør prøve"):
-    prøve = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "ønsket_fukt": ønsket_fukt,
-        "brennkammertemp": brennkammertemp,
-        "innløpstemp": innløpstemp,
-        "utløpstemp": utløpstemp,
-        "friskluft": friskluft,
-        "primluft": primluft,
-        "trykkovn": trykkovn,
-        "hombak": hombak,
-        "maier": maier,
+# Eksempel på hvordan funksjonen kan brukes:
+if __name__ == "__main__":
+    ny_prøve = {
+        "timestamp": "2025-05-28T08:40:00",
+        "ønsket_fukt": 1.36,
+        "beregnet_fukt": 1.25,
+        "brennkammertemp": 790,
+        "innløpstemp": 400,
+        "utløpstemp": 135,
+        "friskluft": 12,
+        "primluft": 3,
+        "trykkovn": -270,
+        "hombak": 78,
+        "maier": 25
     }
-    lagre_prøve(prøve)
-    st.success("Prøve lagret!")
-    antall = hent_antall()
-    st.write(f"Antall prøver lagret: {antall}")
+    lagre_prove(ny_prøve)
