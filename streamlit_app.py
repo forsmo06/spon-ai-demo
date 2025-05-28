@@ -45,13 +45,13 @@ st.header("🛠 Manuell kontroll (AI-styrt startverdi)")
 if beste_kombinasjon:
     ai_g105, ai_g106, ai_frisk, ai_prim, ai_trykk, ai_hombak, ai_maier, ai_fukt = beste_kombinasjon
 
-    temp_til = st.slider("G80GT105 – Røykgasstemp. til tørk (°C)", 250, 500, ai_g105)
-    temp_ut = st.slider("G80GT106 – Røykgasstemp. ut av tørk (°C)", 100, 180, ai_g106)
-    friskluft = st.slider("GS5P101 – Friskluftspjeld (%)", 0, 100, ai_frisk)
-    primluft = st.slider("GS5F101 – Primærluftsflekt (%)", 0, 100, ai_prim)
-    trykkovn = st.slider("G80GP101 – Tryckugn (Pa)", -500, 0, ai_trykk)
-    hombak_mating = st.slider("Hombak-mating (%)", 0, 100, ai_hombak)
-    maier_mating = st.slider("Maier-mating (%)", 0, 100, ai_maier)
+    temp_til = st.slider("Innløpstemp. (røykgass før tørk) °C", 250, 500, ai_g105)
+    temp_ut = st.slider("Utløpstemp. (røykgass etter tørk) °C", 100, 180, ai_g106)
+    friskluft = st.slider("Forbrenning av støv (%)", 0, 100, ai_frisk)
+    primluft = st.slider("Brenner ytelse (Primærluftsflekt) (%)", 0, 100, ai_prim)
+    trykkovn = st.slider("Brennkammer temp. (Nedre ovn trykk Pa)", -500, 0, ai_trykk)
+    hombak_mating = st.slider("Utmating Hombak (%)", 0, 100, ai_hombak)
+    maier_mating = st.slider("Utmating Maier (%)", 0, 100, ai_maier)
 
     # Oppdatert fukt etter manuell justering
     fukt_manuell = beregn_fukt(temp_til, temp_ut, friskluft, primluft, trykkovn, hombak_mating, maier_mating)
@@ -71,8 +71,8 @@ else:
 # === SENSORJUSTERINGSMODUL ===
 st.header("📐 Sensorjustering og prøvemåling")
 
-manual_fukt = st.number_input("Manuell fuktmåling (%)", min_value=0.0, max_value=10.0, value=1.20, step=0.01)
-sensor_fukt = st.number_input("Sensorverdi fuktighet (%)", min_value=0.0, max_value=10.0, value=1.40, step=0.01)
+manual_fukt = st.number_input("Fuktighet tørrspon (målt prøve) (%)", min_value=0.0, max_value=10.0, value=1.20, step=0.01)
+sensor_fukt = st.number_input("Fuktighet tørrspon (sensorverdi) (%)", min_value=0.0, max_value=10.0, value=1.40, step=0.01)
 
 avvik = round(sensor_fukt - manual_fukt, 2)
 st.write(f"📏 Sensoren viser **{avvik:+.2f}%** i avvik fra virkelig målt verdi.")
@@ -82,8 +82,8 @@ st.header("🔧 Justering for ønsket fukt etter prøve")
 
 oensket_fukt = st.number_input("Ønsket fukt etter ny justering (%)", min_value=0.0, max_value=10.0, value=1.20, step=0.01)
 
-st.markdown("Angi dagens utgående røykgasstemperatur og hvor mye du vil justere:")
-utlopstemp = st.number_input("Nåværende utgående temp etter tørk (G80GT106) °C", min_value=100, max_value=200, value=140)
+st.markdown("Angi dagens utløpstemp. og hvor mye du vil justere:")
+utlopstemp = st.number_input("Utløpstemp. (røykgass etter tørk) °C", min_value=100, max_value=200, value=140)
 endring = st.slider("Still ned eller opp temp (grader)", -10, 10, step=1, value=0)
 
 ny_temp = utlopstemp + endring
