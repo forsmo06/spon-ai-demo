@@ -41,15 +41,14 @@ with col1:
 
     def beregn_fukt(g105, g106, frisk, prim, trykk, hombak, maier):
         return round(
-            3.28
+            3.24
             - (g105 - 300) * 0.009
             - (g106 - 120) * 0.015
-            # friskluft (GS5P101) tas ut, påvirker ikke fuktighet
-            # + (frisk - 60) * 0.015
+            + (frisk - 60) * 0.010
             + (prim - 30) * 0.012
             + ((trykk + 270) / 100) * 0.3
-            + (hombak - 50) * 0.012
-            + (maier - 50) * 0.028,
+            + (hombak - 50) * 0.010
+            + (maier - 50) * 0.005,
             2
         )
 
