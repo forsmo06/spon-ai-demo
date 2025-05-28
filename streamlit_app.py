@@ -14,11 +14,11 @@ with col1:
     target_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.36)
 
     brennkammer = st.slider("Brennkammertemp (°C)", 600, 1000, 794)
-    temp_til = st.slider("G80GT105 – Innløpstemp (°C)", 250, 700, 403)
-    temp_ut = st.slider("G80GT106 – Utløpstemp (°C)", 100, 180, 133)
-    friskluft = st.slider("GS5P101 – Friskluft (Forbrenning av støv) (%)", 0, 100, 12)
-    primluft = st.slider("GS5F101 – Primærluftsflekt (%)", 0, 100, 3)
-    trykkovn = st.slider("G80GP101 – Trykk ovn (Pa)", -500, 0, -270)
+    temp_til = st.slider("Innløpstemp (G80GT105) (°C)", 250, 700, 403)
+    temp_ut = st.slider("Utløpstemp (G80GT106) (°C)", 100, 180, 133)
+    friskluft = st.slider("Forbrenning av støv – Friskluft (GS5P101) (%)", 0, 100, 12)
+    primluft = st.slider("Primærluftsflekt (GS5F101) (%)", 0, 100, 3)
+    trykkovn = st.slider("Trykk ovn (G80GP101) (Pa)", -500, 0, -270)
     hombak = st.slider("Utmating Hombak (%)", 0, 100, 78)
     maier = st.slider("Utmating Maier (%)", 0, 100, 25)
 
@@ -29,12 +29,12 @@ with col2:
     def beregn_fukt(brenn, g105, g106, frisk, prim, trykk, hombak, maier):
         return round(
             1.36
-            - (g106 - 133) * 0.14  # høy vekt på utløpstemp
+            - (g106 - 133) * 0.18  # høyere vekt på utløpstemp
             + (frisk - 60) * 0.004
-            + (prim - 30) * 0.003
+            + (prim - 30) * 0.002
             + ((trykk + 270) / 100) * 0.1
-            + (hombak - 50) * 0.008
-            + (maier - 50) * 0.005,
+            + (hombak - 50) * 0.006
+            + (maier - 50) * 0.004,
             2
         )
 
