@@ -1,37 +1,35 @@
 import streamlit as st
 
-st.title("Fuktprognose – basert på IPAAR-data")
+st.title("Fuktprognose – med faktiske IPAAR-sensorer")
 
-st.markdown("Bruk faktiske verdier fra IPAAR for å estimere sponfukt etter tørke.")
+st.markdown("Basert på sensorer fra flisfyr og tørkestyring.")
 
-# Sensorverdier
-temp_rist = st.slider("GG9T101 – Temp. etter rist (°C)", 300, 500, 355)
-temp_røyk = st.slider("G80GT105 – Røykgasstemperatur før tørk (°C)", 280, 670, 355)
-temp_blkamm = st.slider("GG9T102 – Temp. blandkammer (°C)", 800, 1100, 972)
-o2 = st.slider("GG9O101 – O2 i røykgass (%)", 5.0, 20.0, 12.5)
-friskluft_spjeld = st.slider("GS5P101 – Friskluftspjeld (%)", 0, 100, 65)
+# Sensorverdier fra anlegget
+temp_ugn_topp = st.slider("G80GT103 – Temp topp ugn (°C)", 600, 1000, 883)
+temp_ugn_indre = st.slider("G80GT101 – Temp indre ugn (°C)", 600, 900, 779)
+temp_til_tork = st.slider("G80GT105 – Røyktemp til tørk (°C)", 250, 500, 420)
+temp_ut_tork = st.slider("G80GT106 – Røyktemp ut av tørk (°C)", 100, 180, 135)
+friskluft = st.slider("GS5P101 – Friskluftspjeld (%)", 0, 100, 67)
 
-# Forenklet modell
+# Forenklet kalkulasjon av fukt
 fukt = round(
-    3.2
-    - (temp_rist - 340) * 0.003
-    - (temp_røyk - 280) * 0.01
-    - (o2 - 10) * 0.02
-    + (friskluft_spjeld - 60) * 0.01,
+    3.0
+    - (temp_til_tork - 300) * 0.01
+    - (temp_ut_tork - 120) * 0.02
+    + (friskluft - 60) * 0.015,
     2
 )
 
 st.write(f"### Beregnet fukt etter tørke: **{fukt} %**")
 
-# Anbefaling
-if temp_røyk > 650:
-    st.warning("🚨 Røykgassen er nær maksgrense – vanninnsprøytning kan aktiveres!")
-    
+# Vurdering
+if temp_til_tork > 460:
+    st.warning("🚨 Høy røykgasstemperatur – vanninnsprøytning kan slå inn.")
 if fukt > 2.5:
-    st.error("⚠️ For høy fukt – vurder å redusere friskluft eller øke temperatur.")
+    st.error("⚠️ For høy fukt – vurder mer varme eller mindre friskluft.")
 elif fukt < 1.2:
-    st.warning("⚠️ For tørr spon – vurder å øke friskluft eller redusere tørking.")
+    st.warning("⚠️ For tørr spon – vurder mer friskluft eller lavere temperatur.")
 else:
-    st.success("✅ Fukt ligger innenfor målområdet.")
+    st.success("✅ Fukt ser stabil ut.")
 
-st.caption("Basert på IPAAR-sensorer og en forenklet fuktmodell.")
+st.caption("Bruker faktisk sensor-ID fra IPAAR. Neste steg: Ekte AI basert på produksjonsdata.")
