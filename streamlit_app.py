@@ -1,5 +1,6 @@
 import streamlit as st
 import numpy as np
+import re
 
 st.set_page_config(layout="wide")
 
@@ -9,17 +10,56 @@ col1, col2 = st.columns(2)
 
 # === VENSTRE SIDE: INNSTILLINGER ===
 with col1:
+    st.header("💬 Kommandobasert styring")
+
+    kommando = st.text_input("Skriv kommando (f.eks. 'Still inn til 1.10% fuktighet')")
+
+    # Standardverdier
+    target_fukt = 1.20
+    temp_til = 400
+    temp_ut = 135
+    friskluft = 60
+    primluft = 30
+    trykkovn = -270
+    hombak = 50
+    maier = 50
+
+    # Enkle regler for parsing
+    if "fukt" in kommando.lower():
+        match = re.search(r"(\d+[.,]?\d*)\s*%?\s*fukt", kommando)
+        if match:
+            target_fukt = float(match.group(1).replace(",", "."))
+
+    if "hombak" in kommando.lower():
+        match = re.search(r"hombak.*?(\d+)%", kommando)
+        if match:
+            hombak = int(match.group(1))
+
+    if "maier" in kommando.lower():
+        match = re.search(r"maier.*?(\d+)%", kommando)
+        if match:
+            maier = int(match.group(1))
+
+    if "utløp" in kommando.lower():
+        match = re.search(r"utløp.*?(\d+)", kommando)
+        if match:
+            temp_ut = int(match.group(1))
+
+    if "innløp" in kommando.lower():
+        match = re.search(r"innløp.*?(\d+)", kommando)
+        if match:
+            temp_til = int(match.group(1))
+
     st.header("🔧 Justeringer")
 
-    target_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.20)
-
-    temp_til = st.slider("G80GT105 – Innløpstemp (°C)", 250, 700, 400)
-    temp_ut = st.slider("G80GT106 – Utløpstemp (°C)", 100, 180, 135)
-    friskluft = st.slider("GS5P101 – Friskluft (Forbrenning av støv) (%)", 0, 100, 60)
-    primluft = st.slider("GS5F101 – Primærluftsflekt (%)", 0, 100, 30)
-    trykkovn = st.slider("G80GP101 – Trykk ovn (Pa)", -500, 0, -270)
-    hombak = st.slider("Utmating Hombak (%)", 0, 100, 50)
-    maier = st.slider("Utmating Maier (%)", 0, 100, 50)
+    target_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=target_fukt)
+    temp_til = st.slider("G80GT105 – Innløpstemp (°C)", 250, 700, temp_til)
+    temp_ut = st.slider("G80GT106 – Utløpstemp (°C)", 100, 180, temp_ut)
+    friskluft = st.slider("GS5P101 – Friskluft (Forbrenning av støv) (%)", 0, 100, friskluft)
+    primluft = st.slider("GS5F101 – Primærluftsflekt (%)", 0, 100, primluft)
+    trykkovn = st.slider("G80GP101 – Trykk ovn (Pa)", -500, 0, trykkovn)
+    hombak = st.slider("Utmating Hombak (%)", 0, 100, hombak)
+    maier = st.slider("Utmating Maier (%)", 0, 100, maier)
 
     st.divider()
     st.subheader("📐 Sensorjustering og prøvemåling")
