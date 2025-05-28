@@ -41,8 +41,8 @@ with col1:
 
     def beregn_fukt(g105, g106, frisk, prim, trykk, hombak, maier):
         return round(
-            3.22
-            - (g105 - 300) * 0.009
+            3.21
+            - (g105 - 300) * 0.008
             - (g106 - 120) * 0.017
             + (frisk - 60) * 0.010
             + (prim - 30) * 0.012
