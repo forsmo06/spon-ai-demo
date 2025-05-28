@@ -18,8 +18,6 @@ def lagre_prove(data):
     return df
 
 def tren_model(df):
-    st.write("Kolonner i data:", list(df.columns))
-
     map_kolonner = {
         "brennkammer_temp": "brennkammer_temp",
         "innlop_temp": "innlop_temp",
@@ -74,7 +72,6 @@ def nullstill_logg():
 
 st.title("Logging og AI-beregning av fuktprøver")
 
-# Inputfelter
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 onsket_fukt = st.number_input("Ønsket fukt (%)", min_value=0.0, max_value=100.0, value=1.36, format="%.2f")
 beregnet_fukt = st.number_input("Beregnet fukt (%)", min_value=0.0, max_value=100.0, value=1.25, format="%.2f")
@@ -103,7 +100,6 @@ if st.button("Loggfør prøve"):
     }
     df = lagre_prove(ny_prove)
     st.success("Prøve lagret!")
-
 else:
     if os.path.exists(FILENAME):
         df = pd.read_csv(FILENAME)
