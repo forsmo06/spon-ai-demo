@@ -1,94 +1,66 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime
-from sklearn.linear_model import LinearRegression
-import numpy as np
 
-st.set_page_config(layout="wide")
-
-st.title("📊 Fuktstyring – AI & Manuell (Ipaar-stil)")
-
+# Filnavn for loggen
 LOGG_FIL = "fuktlogg.csv"
-MODELL_FIL = "fuktmodell.pkl"
 
-# Funksjon for logging av prøver
-def logg_data(data):
-    df = pd.DataFrame([data])
-    if os.path.exists(LOGG_FIL):
-        df_existing = pd.read_csv(LOGG_FIL)
-        df = pd.concat([df_existing, df], ignore_index=True)
-    df.to_csv(LOGG_FIL, index=False)
-
-# Funksjon for å hente antall prøver
-def hent_antall_prøver():
+# Funksjon for å legge til data i CSV
+def logg_prøve(data: dict):
+    # Les eksisterende data eller lag ny DataFrame
     if os.path.exists(LOGG_FIL):
         df = pd.read_csv(LOGG_FIL)
-        return len(df)
-    return 0
+    else:
+        df = pd.DataFrame()
 
-# Sjekk antall prøver for statusmelding
-antall_prøver = hent_antall_prøver()
-if antall_prøver < 10:
-    st.sidebar.info(f"📊 Antall prøver: {antall_prøver} av 10 – AI ikke aktiv ennå")
+    # Legg til ny rad
+    df = pd.concat([df, pd.DataFrame([data])], ignore_index=True)
+
+    # Lagre tilbake til CSV
+    df.to_csv(LOGG_FIL, index=False)
+
+# Start appen
+st.title("Fuktstyring - Loggføring")
+
+# Les inn eksisterende data for å vise antall prøver
+if os.path.exists(LOGG_FIL):
+    df_logg = pd.read_csv(LOGG_FIL)
+    antall_prøver = len(df_logg)
 else:
-    st.sidebar.success(f"🤖 AI aktiv ✅ – basert på {antall_prøver} prøver")
+    antall_prøver = 0
 
-col1, col2 = st.columns(2)
+st.write(f"Antall prøver lagret: {antall_prøver}")
 
-with col1:
-    st.header("🛠 Justeringer")
+# Inputfelter - juster etter dine kolonner
+ønsket_fukt = st.number_input("Ønsket fukt (%)", min_value=0.0, max_value=100.0, value=1.36, step=0.01)
+brennkammertemp = st.slider("Brennkammertemp (°C)", min_value=600, max_value=1000, value=794)
+innløpstemp = st.number_input("Innløpstemperatur (°C)", min_value=0, max_value=1000, value=403)
+utløpstemp = st.number_input("Utløpstemperatur (°C)", min_value=0, max_value=1000, value=133)
+friskluft = st.number_input("Friskluft (%)", min_value=0, max_value=100, value=12)
+primluft = st.number_input("Primærluft (%)", min_value=0, max_value=100, value=3)
+trykkovn = st.number_input("Trykk ovn (Pa)", min_value=-500, max_value=0, value=-270)
+hombak = st.number_input("Utmatning Hombak (%)", min_value=0, max_value=100, value=78)
+maier = st.number_input("Utmatning Maier (%)", min_value=0, max_value=100, value=25)
 
-    ønsket_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.36)
+# Knapp for å lagre prøve
+if st.button("Loggfør denne prøven"):
+    ny_prøve = {
+        "timestamp": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "ønsket_fukt": ønsket_fukt,
+        "brennkammertemp": brennkammertemp,
+        "innløpstemp": innløpstemp,
+        "utløpstemp": utløpstemp,
+        "friskluft": friskluft,
+        "primluft": primluft,
+        "trykkovn": trykkovn,
+        "hombak": hombak,
+        "maier": maier
+    }
 
-    brennkammertemp = st.slider("Brennkammertemp (°C)", 600, 1000, 794)
-    innløpstemp = st.slider("Innløpstemp (°C)", 250, 700, 403)
-    utløpstemp = st.slider("Utløpstemp (°C)", 100, 180, 133)
-    friskluft = st.slider("Forbrenning av støv - Friskluft (%)", 0, 100, 12)
-    primluft = st.slider("Primærluftsflækt (%)", 0, 100, 3)
-    trykkovn = st.slider("Trykk ovn (Pa)", -500, 0, -270)
-    hombak = st.slider("Utmating Hombak (%)", 0, 100, 78)
-    maier = st.slider("Utmating Maier (%)", 0, 100, 25)
+    logg_prøve(ny_prøve)
 
-    if st.button("📥 Loggfør denne prøven"):
-        ny_prøve = {
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "ønsket_fukt": ønsket_fukt,
-            "beregnet_fukt": np.nan,  # Kan fylles ut med AI-prediksjon senere
-            "brennkammertemp": brennkammertemp,
-            "innløpstemp": innløpstemp,
-            "utløpstemp": utløpstemp,
-            "friskluft": friskluft,
-            "primluft": primluft,
-            "trykkovn": trykkovn,
-            "hombak": hombak,
-            "maier": maier,
-        }
-        logg_data(ny_prøve)
-        st.success("✅ Prøve lagret til fuktlogg.csv")
-        antall_prøver = hent_antall_prøver()
-        st.sidebar.success(f"🤖 AI aktiv ✅ – basert på {antall_prøver} prøver")
+    st.success("Prøve lagret!")
 
-with col2:
-    st.header("📈 Resultat")
-
-    # Her kan du implementere prediksjon av beregnet fukt basert på AI-modellen
-    # Foreløpig dummyverdi for eksempel
-    beregnet_fukt = ønsket_fukt - 0.36
-    avvik = beregnet_fukt - ønsket_fukt
-
-    st.markdown(f"**Beregnet fukt:** {beregnet_fukt:.2f} %")
-    st.markdown(f"**Ønsket fukt:** {ønsket_fukt:.2f} %")
-    st.markdown(f"**Avvik:** {avvik:+.2f} %")
-
-    if 133 <= utløpstemp <= 137:
-        st.success("✅ Utløpstemp OK for 22mm gulvplate")
-    else:
-        st.error("⚠️ Utløpstemp utenfor ønsket område")
-
-    if -280 <= trykkovn <= -260:
-        st.success("✅ Trykk ovn OK")
-    else:
-        st.error("⚠️ Trykk ovn utenfor ønsket område")
-
-    st.info("ℹ️ Når minst 10 prøver er lagret, vil AI begynne å lære og brukes i beregningene.")
+    # Oppdater antall prøver i appen
+    antall_prøver += 1
+    st.write(f"Antall prøver lagret: {antall_prøver}")
