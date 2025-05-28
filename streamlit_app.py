@@ -15,32 +15,32 @@ with col1:
 
     temp_til = st.slider("G80GT105 – Innløpstemp (°C)", 250, 700, 400)
     temp_ut = st.slider("G80GT106 – Utløpstemp (°C)", 100, 180, 135)
-    brennkammer = st.slider("Brennkammertemp (°C)", 700, 1000, 800)
-    friskluft = st.slider("GS5P101 – Friskluft (%)", 0, 100, 60)
-    primluft = st.slider("GS5F101 – Primærluft (%)", 0, 100, 30)
+    friskluft = st.slider("GS5P101 – Friskluft (Forbrenning av støv) (%)", 0, 100, 60)
+    primluft = st.slider("GS5F101 – Primærluftsflekt (%)", 0, 100, 30)
     trykkovn = st.slider("G80GP101 – Trykk ovn (Pa)", -500, 0, -270)
     hombak = st.slider("Utmating Hombak (%)", 0, 100, 50)
     maier = st.slider("Utmating Maier (%)", 0, 100, 50)
+    brennkammer = st.slider("Brennkammertemp – Temp nedre ovn (°C)", 600, 900, 794)
 
 # === HØYRE SIDE: RESULTAT ===
 with col2:
     st.header("📈 Resultat")
 
-    def beregn_fukt(g105, g106, bk, frisk, prim, trykk, hombak, maier):
+    def beregn_fukt(g105, g106, frisk, prim, trykk, hombak, maier, brenn):
         return round(
-            2.75
-            - (g105 - 300) * 0.005
-            - (g106 - 120) * 0.020
-            - (bk - 800) * 0.004
+            3.0
+            - (g105 - 300) * 0.009
+            - (g106 - 120) * 0.015
             + (frisk - 60) * 0.015
             + (prim - 30) * 0.012
             + ((trykk + 270) / 100) * 0.3
             + (hombak - 50) * 0.015
-            + (maier - 50) * 0.03,
+            + (maier - 50) * 0.03
+            - (brenn - 800) * 0.004,
             2
         )
 
-    fukt = beregn_fukt(temp_til, temp_ut, brennkammer, friskluft, primluft, trykkovn, hombak, maier)
+    fukt = beregn_fukt(temp_til, temp_ut, friskluft, primluft, trykkovn, hombak, maier, brennkammer)
     diff = round(fukt - target_fukt, 2)
 
     st.metric("🔹 Beregnet fukt", f"{fukt:.2f} %")
