@@ -5,129 +5,88 @@ from datetime import datetime
 from sklearn.linear_model import LinearRegression
 import numpy as np
 
-st.set_page_config(layout="wide")
 FILENAME = "fuktlogg.csv"
 
 def lagre_prove(data):
+    df_ny = pd.DataFrame([data])
     if os.path.exists(FILENAME):
-        df = pd.read_csv(FILENAME)
+        df_eks = pd.read_csv(FILENAME)
+        df = pd.concat([df_eks, df_ny], ignore_index=True)
     else:
-        df = pd.DataFrame(columns=data.keys())
-    df = pd.concat([df, pd.DataFrame([data])], ignore_index=True)
+        df = df_ny
     df.to_csv(FILENAME, index=False)
     return len(df)
 
-def hent_antall():
-    if os.path.exists(FILENAME):
-        df = pd.read_csv(FILENAME)
-        return len(df)
-    return 0
-
-def tren_ai_modell():
-    if not os.path.exists(FILENAME):
-        return None
-    df = pd.read_csv(FILENAME)
-    if len(df) < 10:
-        return None
-    X = df[["brennkammer_temp", "innlop_temp", "utlop_temp", "friskluft", "primluft", "trykk_ovn", "hombak", "maier"]]
-    y = df["onsket_fukt"]
-    model = LinearRegression().fit(X, y)
+def tren_model(df):
+    # Velg inputvariabler og target
+    X = df[["brennkammertemp", "innløpstemp", "utløpstemp", "friskluft", "primluft", "trykkovn", "hombak", "maier"]]
+    y = df["beregnet_fukt"]
+    model = LinearRegression()
+    model.fit(X, y)
     return model
 
-def reset_logg():
-    if os.path.exists(FILENAME):
-        os.remove(FILENAME)
+def prediker_fukt(model, input_data):
+    X = np.array([input_data]).reshape(1, -1)
+    return model.predict(X)[0]
 
-st.title("📊 Fuktstyring – AI & Manuell")
+st.title("Logging av fuktprøver med AI-prediksjon")
 
-if st.button("🗑 Nullstill logg (slett alle prøver)"):
-    reset_logg()
-    st.success("Loggfil nullstilt!")
+# Inputfelter
+timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+ønsket_fukt = st.number_input("Ønsket fukt (%)", min_value=0.0, format="%.2f", value=1.36)
+beregnet_fukt = st.number_input("Beregnet fukt (%)", min_value=0.0, format="%.2f", value=1.25)
+brennkammertemp = st.number_input("Brennkammertemp (°C)", value=790)
+innløpstemp = st.number_input("Innløpstemp (°C)", value=400)
+utløpstemp = st.number_input("Utløpstemp (°C)", value=135)
+friskluft = st.number_input("Friskluft (%)", value=12)
+primluft = st.number_input("Primærluft (%)", value=3)
+trykkovn = st.number_input("Trykk ovn (Pa)", value=-270)
+hombak = st.number_input("Utmating Hombak (%)", value=78)
+maier = st.number_input("Utmating Maier (%)", value=25)
 
-antall_prøver = hent_antall()
-if antall_prøver < 10:
-    st.sidebar.info(f"📊 Antall prøver: {antall_prøver} av 10 – AI ikke aktiv ennå")
-else:
-    st.sidebar.success(f"🤖 AI aktiv ✅ – basert på {antall_prøver} prøver")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.header("🛠 Justeringer")
-
-    ønsket_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.36)
-
-    brennkammer_temp = st.slider("Brennkammertemp (°C)", 600, 1000, 794)
-    innlop_temp = st.slider("Innløpstemp (°C)", 250, 700, 403)
-    utlop_temp = st.slider("Utløpstemp (°C)", 100, 180, 133)
-    friskluft = st.slider("Forbrenning av støv - Friskluft (%)", 0, 100, 12)
-    primluft = st.slider("Primærluftsflækt (%)", 0, 100, 3)
-    trykk_ovn = st.slider("Trykk ovn (Pa)", -500, 0, -270)
-    hombak = st.slider("Utmating Hombak (%)", 0, 100, 78)
-    maier = st.slider("Utmating Maier (%)", 0, 100, 25)
-
-    if st.button("📥 Loggfør denne prøven"):
-        ny_prøve = {
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "onsket_fukt": ønsket_fukt,
-            "brennkammer_temp": brennkammer_temp,
-            "innlop_temp": innlop_temp,
-            "utlop_temp": utlop_temp,
-            "friskluft": friskluft,
-            "primluft": primluft,
-            "trykk_ovn": trykk_ovn,
-            "hombak": hombak,
-            "maier": maier,
-            "beregnet_fukt": np.nan  # Fylles ut etter AI-prediksjon
-        }
-        lagre_prove(ny_prøve)
-        st.success("✅ Prøve lagret til fuktlogg.csv")
-
-with col2:
-    st.header("📈 Resultat")
-
-    model = tren_ai_modell()
-
-    input_data = {
-        "brennkammer_temp": brennkammer_temp,
-        "innlop_temp": innlop_temp,
-        "utlop_temp": utlop_temp,
+if st.button("Loggfør prøve"):
+    prøve = {
+        "timestamp": timestamp,
+        "ønsket_fukt": ønsket_fukt,
+        "beregnet_fukt": beregnet_fukt,
+        "brennkammertemp": brennkammertemp,
+        "innløpstemp": innløpstemp,
+        "utløpstemp": utløpstemp,
         "friskluft": friskluft,
         "primluft": primluft,
-        "trykk_ovn": trykk_ovn,
+        "trykkovn": trykkovn,
         "hombak": hombak,
-        "maier": maier,
+        "maier": maier
     }
+    antall = lagre_prove(prøve)
+    st.success(f"Prøve logget! Totalt antall prøver: {antall}")
 
-    if model is not None:
-        df_inndata = pd.DataFrame([input_data])
-        pred = model.predict(df_inndata)[0]
-        beregnet_fukt = round(pred, 2)
-    else:
-        beregnet_fukt = 1.0  # Dummy verdi før AI er klar
-
-    avvik = beregnet_fukt - ønsket_fukt
-
-    st.metric("🔹 Beregnet fukt", f"{beregnet_fukt:.2f} %")
-    st.metric("🎯 Ønsket fukt", f"{ønsket_fukt:.2f} %")
-    st.metric("➖ Avvik", f"{avvik:+.2f} %")
-
-    if 133 <= utlop_temp <= 137:
-        st.success("✅ Utløpstemp OK for 22mm gulvplate")
-    else:
-        st.warning("⚠️ Utløpstemp utenfor ønsket område (133–137 °C)")
-
-    if -280 <= trykk_ovn <= -260:
-        st.success("✅ Trykk ovn OK")
-    else:
-        st.warning("⚠️ Trykk ovn utenfor anbefalt område (-280 til -260 Pa)")
-
-    st.info("ℹ️ AI-modellen aktiveres når minst 10 prøver er logget.")
-
-# Vis tabell med lagrede prøver under
-st.subheader("Oversikt over loggede prøver")
+# Last inn data og tren modell om nok prøver
 if os.path.exists(FILENAME):
     df = pd.read_csv(FILENAME)
-    st.dataframe(df)
+    if len(df) >= 10:
+        model = tren_model(df)
+        input_data = [brennkammertemp, innløpstemp, utløpstemp, friskluft, primluft, trykkovn, hombak, maier]
+        pred_fukt = prediker_fukt(model, input_data)
+        avvik = pred_fukt - ønsket_fukt
+        st.markdown(f"## AI-prediksjon")
+        st.write(f"Predikert fuktighet: **{pred_fukt:.2f} %**")
+        st.write(f"Avvik fra ønsket fukt: **{avvik:+.2f} %**")
+
+        # Enkel anbefaling basert på avvik
+        if avvik > 0.05:
+            st.warning("Fuktigheten er høyere enn ønsket. Vurder å redusere temperatur eller mating.")
+        elif avvik < -0.05:
+            st.warning("Fuktigheten er lavere enn ønsket. Vurder å øke temperatur eller mating.")
+        else:
+            st.success("Fuktigheten er innenfor ønsket område.")
+    else:
+        st.info(f"AI-modellen aktiveres når minst 10 prøver er logget. Nåværende antall: {len(df)}")
 else:
     st.info("Ingen prøver logget enda.")
+
+# Vis oversikt over alle prøver nederst
+if os.path.exists(FILENAME):
+    df = pd.read_csv(FILENAME)
+    st.markdown("### Oversikt over alle loggførte prøver")
+    st.dataframe(df)
