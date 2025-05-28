@@ -18,4 +18,3 @@ ny_data = {
 }
 
 logg_data(ny_data)
-python test_logg.py
