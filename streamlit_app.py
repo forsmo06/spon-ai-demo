@@ -8,25 +8,21 @@ import numpy as np
 st.set_page_config(layout="wide")
 FILENAME = "fuktlogg.csv"
 
-# Logger ny prøve til CSV, lager ny fil om nødvendig
 def lagre_prove(data):
-    df_ny = pd.DataFrame([data])
     if os.path.exists(FILENAME):
-        df_eks = pd.read_csv(FILENAME)
-        df = pd.concat([df_eks, df_ny], ignore_index=True)
+        df = pd.read_csv(FILENAME)
     else:
-        df = df_ny
+        df = pd.DataFrame(columns=data.keys())
+    df = pd.concat([df, pd.DataFrame([data])], ignore_index=True)
     df.to_csv(FILENAME, index=False)
     return len(df)
 
-# Henter antall prøver i loggfilen
 def hent_antall():
     if os.path.exists(FILENAME):
         df = pd.read_csv(FILENAME)
         return len(df)
     return 0
 
-# Tren og returner enkel lineær modell hvis minst 10 prøver
 def tren_ai_modell():
     if not os.path.exists(FILENAME):
         return None
@@ -38,7 +34,15 @@ def tren_ai_modell():
     model = LinearRegression().fit(X, y)
     return model
 
+def reset_logg():
+    if os.path.exists(FILENAME):
+        os.remove(FILENAME)
+
 st.title("📊 Fuktstyring – AI & Manuell")
+
+if st.button("🗑 Nullstill logg (slett alle prøver)"):
+    reset_logg()
+    st.success("Loggfil nullstilt!")
 
 antall_prøver = hent_antall()
 if antall_prøver < 10:
@@ -66,7 +70,7 @@ with col1:
         ny_prøve = {
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "onsket_fukt": ønsket_fukt,
-            "brennkammertemp": brennkammer_temp,
+            "brennkammer_temp": brennkammer_temp,
             "innlop_temp": innlop_temp,
             "utlop_temp": utlop_temp,
             "friskluft": friskluft,
@@ -119,3 +123,11 @@ with col2:
         st.warning("⚠️ Trykk ovn utenfor anbefalt område (-280 til -260 Pa)")
 
     st.info("ℹ️ AI-modellen aktiveres når minst 10 prøver er logget.")
+
+# Vis tabell med lagrede prøver under
+st.subheader("Oversikt over loggede prøver")
+if os.path.exists(FILENAME):
+    df = pd.read_csv(FILENAME)
+    st.dataframe(df)
+else:
+    st.info("Ingen prøver logget enda.")
