@@ -18,13 +18,45 @@ def lagre_prove(data):
     return df
 
 def tren_model(df):
-    # Fjerne rader med manglende verdier i input/output-kolonner
-    cols = ["brennkammer_temp", "innlop_temp", "utlop_temp", "friskluft", "primluft", "trykk_ovn", "hombak", "maier", "beregnet_fukt"]
-    df_clean = df.dropna(subset=cols)
-    if df_clean.empty:
+    st.write("Kolonner i data:", list(df.columns))
+
+    map_kolonner = {
+        "brennkammer_temp": "brennkammer_temp",
+        "innlop_temp": "innlop_temp",
+        "utlop_temp": "utlop_temp",
+        "friskluft": "friskluft",
+        "primluft": "primluft",
+        "trykk_ovn": "trykk_ovn",
+        "hombak": "hombak",
+        "maier": "maier"
+    }
+
+    nødvendige_kolonner = []
+    for k in map_kolonner.keys():
+        if k in df.columns:
+            nødvendige_kolonner.append(k)
+
+    if not nødvendige_kolonner:
+        st.error("Ingen gyldige kolonner for trening funnet i data.")
         return None
-    X = df_clean[["brennkammer_temp", "innlop_temp", "utlop_temp", "friskluft", "primluft", "trykk_ovn", "hombak", "maier"]]
-    y = df_clean["beregnet_fukt"]
+
+    X = df[nødvendige_kolonner].copy()
+    X.rename(columns=map_kolonner, inplace=True)
+
+    if "beregnet_fukt" not in df.columns:
+        st.error("Data mangler kolonnen 'beregnet_fukt'. Kan ikke trene modellen.")
+        return None
+
+    y = df["beregnet_fukt"]
+
+    mask = X.notnull().all(axis=1) & y.notnull()
+    X = X.loc[mask]
+    y = y.loc[mask]
+
+    if len(X) == 0:
+        st.error("Ingen gyldige data igjen etter fjerning av manglende verdier.")
+        return None
+
     model = LinearRegression()
     model.fit(X, y)
     return model
@@ -44,8 +76,8 @@ st.title("Logging og AI-beregning av fuktprøver")
 
 # Inputfelter
 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-onsket_fukt = st.number_input("Ønsket fukt (%)", min_value=0.0, max_value=100.0, value=1.0, format="%.2f")
-beregnet_fukt = st.number_input("Beregnet fukt (%)", min_value=0.0, max_value=100.0, value=1.0, format="%.2f")
+onsket_fukt = st.number_input("Ønsket fukt (%)", min_value=0.0, max_value=100.0, value=1.36, format="%.2f")
+beregnet_fukt = st.number_input("Beregnet fukt (%)", min_value=0.0, max_value=100.0, value=1.25, format="%.2f")
 brennkammer_temp = st.number_input("Brennkammertemp (°C)", value=790)
 innlop_temp = st.number_input("Innløpstemp (°C)", value=400)
 utlop_temp = st.number_input("Utløpstemp (°C)", value=135)
@@ -78,10 +110,8 @@ else:
     else:
         df = pd.DataFrame()
 
-# Tren modell hvis nok data
 model = tren_model(df) if not df.empty else None
 
-# Beregn AI-prediksjon basert på inputfelt (utenom "beregnet fukt")
 input_for_pred = {
     "brennkammer_temp": brennkammer_temp,
     "innlop_temp": innlop_temp,
@@ -94,17 +124,24 @@ input_for_pred = {
 }
 
 ai_fukt = beregn_fukt(model, input_for_pred)
-if not np.isnan(ai_fukt):
-    st.info(f"AI beregnet fuktighet: {ai_fukt} %")
-else:
-    st.info("AI-modellen er ikke klar for trening. Loggfør flere gyldige prøver.")
 
-# Vis tabell med prøver
+st.markdown("---")
+st.subheader("Fuktighetsoversikt")
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Ønsket fuktighet", f"{onsket_fukt:.2f} %")
+col2.metric("Beregnet fuktighet", f"{beregnet_fukt:.2f} %")
+if not np.isnan(ai_fukt):
+    col3.metric("AI beregnet fuktighet", f"{ai_fukt:.2f} %")
+else:
+    col3.write("AI-modellen er ikke klar")
+
+st.markdown("---")
+
 if not df.empty:
     st.subheader("Oversikt over lagrede prøver")
     st.dataframe(df)
 
-# Nullstill logg
 if st.button("Nullstill logg (slett alle prøver)"):
     nullstill_logg()
     st.experimental_rerun()
