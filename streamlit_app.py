@@ -18,22 +18,45 @@ def lagre_prove(data):
     return len(df)
 
 def tren_model(df):
-    forventede_kolonner = [
-        "brennkammertemp",
-        "innlop_temp",
-        "utlop_temp",
-        "friskluft",
-        "primluft",
-        "trykk_ovn",
-        "hombak",
-        "maier"
-    ]
-    for kol in forventede_kolonner:
-        if kol not in df.columns:
-            st.error(f"Data mangler kolonnen '{kol}'. Kan ikke trene modellen.")
-            return None
+    # Sjekk hvilke kolonner vi har
+    st.write("Kolonner i data:", list(df.columns))
 
-    X = df[forventede_kolonner]
+    # Map faktiske kolonnenavn i CSV til variabelnavn som brukes i modellen
+    map_kolonner = {
+        "brennkammertemp": "brennkammertemp",
+        "brennkammertemp ": "brennkammertemp",  # mulig trailing space
+        "innløpstemp": "innlop_temp",
+        "innlop_temp": "innlop_temp",
+        "utløpstemp": "utlop_temp",
+        "utlop_temp": "utlop_temp",
+        "friskluft": "friskluft",
+        "primluft": "primluft",
+        "trykkovn": "trykk_ovn",
+        "trykk_ovn": "trykk_ovn",
+        "hombak": "hombak",
+        "maier": "maier"
+    }
+
+    # Lag liste med faktiske kolonnenavn vi trenger
+    nødvendige_kolonner = []
+    for k in map_kolonner.keys():
+        if k in df.columns:
+            nødvendige_kolonner.append(k)
+
+    # Sjekk at alle nødvendige finnes
+    if not nødvendige_kolonner:
+        st.error("Ingen gyldige kolonner for trening funnet i data.")
+        return None
+
+    # Lag DataFrame med riktige kolonner og gi dem riktig navn
+    X = df[nødvendige_kolonner].copy()
+    X.rename(columns=map_kolonner, inplace=True)
+
+    # Sjekk at beregnet_fukt finnes
+    if "beregnet_fukt" not in df.columns:
+        st.error("Data mangler kolonnen 'beregnet_fukt'. Kan ikke trene modellen.")
+        return None
+
     y = df["beregnet_fukt"]
     model = LinearRegression()
     model.fit(X, y)
