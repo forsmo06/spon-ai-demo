@@ -11,7 +11,7 @@ col1, col2 = st.columns(2)
 with col1:
     st.header("🔧 Justeringer")
 
-    target_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.20)
+    target_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.36)
 
     brennkammer = st.slider("Brennkammertemp (°C)", 600, 1000, 794)
     temp_til = st.slider("G80GT105 – Innløpstemp (°C)", 250, 700, 403)
@@ -26,20 +26,19 @@ with col1:
 with col2:
     st.header("📈 Resultat")
 
-    def beregn_fukt(g105, g106, frisk, prim, trykk, hombak, maier):
+    def beregn_fukt(brenn, g105, g106, frisk, prim, trykk, hombak, maier):
         return round(
-            3.0
-            - (g105 - 300) * 0.009
-            - (g106 - 120) * 0.015
-            + (frisk - 60) * 0.015
-            + (prim - 30) * 0.012
-            + ((trykk + 270) / 100) * 0.3
-            + (hombak - 50) * 0.015
-            + (maier - 50) * 0.03,
+            2.0
+            - (g106 - 130) * 0.035
+            + (frisk - 60) * 0.01
+            + (prim - 30) * 0.01
+            + ((trykk + 270) / 100) * 0.2
+            + (hombak - 50) * 0.012
+            + (maier - 50) * 0.01,
             2
         )
 
-    fukt = beregn_fukt(temp_til, temp_ut, friskluft, primluft, trykkovn, hombak, maier)
+    fukt = beregn_fukt(brennkammer, temp_til, temp_ut, friskluft, primluft, trykkovn, hombak, maier)
     diff = round(fukt - target_fukt, 2)
 
     st.metric("🔹 Beregnet fukt", f"{fukt:.2f} %")
@@ -50,9 +49,6 @@ with col2:
         st.warning("⚠️ Utløpstemp utenfor mål for 22mm gulvplate (133–137 °C)")
     else:
         st.success("✅ Utløpstemp OK for 22mm gulvplate")
-
-    if temp_til > 670:
-        st.error("🔥 Innløpstemp overstiger 670 °C – for varmt!")
 
     if trykkovn != -270:
         st.warning("ℹ️ Trykk ovn avviker fra anbefalt -270 Pa")
