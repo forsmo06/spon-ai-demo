@@ -16,15 +16,11 @@ LOGG_FIL = "fuktlogg.csv"
 MODELL_FIL = "fuktmodell.pkl"
 
 def logg_data(data):
-    try:
-        df = pd.DataFrame([data])
-        if os.path.exists(LOGG_FIL):
-            df_existing = pd.read_csv(LOGG_FIL)
-            df = pd.concat([df_existing, df], ignore_index=True)
-        df.to_csv(LOGG_FIL, index=False)
-        st.success("✅ Prøve lagret til fuktlogg.csv")
-    except Exception as e:
-        st.error(f"❌ Feil under lagring: {e}")
+    df = pd.DataFrame([data])
+    if os.path.exists(LOGG_FIL):
+        df_existing = pd.read_csv(LOGG_FIL)
+        df = pd.concat([df_existing, df], ignore_index=True)
+    df.to_csv(LOGG_FIL, index=False)
 
 # === Vis status for antall prøver uansett ===
 if os.path.exists(LOGG_FIL):
@@ -97,13 +93,22 @@ with col2:
         st.success("✅ Trykk ovn OK")
 
     if st.button("📥 Loggfør denne prøven"):
-        data_to_log = {
+        logg_data({
             "timestamp": datetime.now().isoformat(),
             "ønsket_fukt": target_fukt,
             "beregnet_fukt": fukt,
             **input_data
-        }
-        logg_data(data_to_log)
+        })
+        st.success("✅ Prøve lagret til fuktlogg.csv")
 
         if ai_fukt is None:
             st.info("ℹ️ Når minst 10 prøver er lagret, vil AI begynne å lære og brukes i beregningene.")
+
+# === Nederst: Vis loggfil med prøver ===
+st.header("📋 Logg over prøver")
+
+if os.path.exists(LOGG_FIL):
+    df_logg = pd.read_csv(LOGG_FIL)
+    st.dataframe(df_logg)
+else:
+    st.info("Ingen loggfil funnet enda. Loggfør en prøve for å komme i gang.")
