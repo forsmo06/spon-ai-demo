@@ -1,41 +1,47 @@
 import streamlit as st
+import numpy as np
 
-st.title("Fuktprognose – basert på IPAAR-data")
+st.title("Fuktprognose med automatisk innstillingsforslag")
 
-st.markdown("Estimat av sponfukt etter tørke, basert på sanntidsverdier fra tørke og forbrenning.")
+st.markdown("🧪 Basert på ønsket fuktighet finner systemet de mest passende innstillingene.")
 
-# Sensorinput
-temp_ugn_topp = st.slider("G80GT103 – Temp topp ugn (°C)", 600, 1000, 883)
-temp_ugn_indre = st.slider("G80GT101 – Temp indre ugn (°C)", 600, 900, 779)
-temp_til_tork = st.slider("G80GT105 – Røykgasstemp. til tørk (°C)", 250, 500, 420)
-temp_ut_tork = st.slider("G80GT106 – Røykgasstemp. ut av tørk (°C)", 100, 180, 135)
-friskluft = st.slider("GS5P101 – Friskluftspjeld (%)", 0, 100, 67)
-primærluft = st.slider("GS5F101 – Primærluftsflekt (%)", 0, 100, 26)
-trykk_ovn = st.slider("G80GP101 – Tryckugn (Pa)", -500, 0, -270)
+# Ønsket fukt
+target_fukt = st.number_input("Skriv inn ønsket fukt etter tørke (%)", min_value=0.5, max_value=4.0, step=0.01, value=1.20)
 
-# Forenklet beregningsmodell
-fukt = round(
-    3.0
-    - (temp_til_tork - 300) * 0.009
-    - (temp_ut_tork - 120) * 0.015
-    + (friskluft - 60) * 0.015
-    + (primærluft - 30) * 0.012
-    + ((trykk_ovn + 270) / 100) * 0.3,  # sentrert rundt -270 Pa
-    2
-)
+# Modellberegning
+def beregn_fukt(g105, g106, frisk, prim, trykk):
+    return round(
+        3.0
+        - (g105 - 300) * 0.009
+        - (g106 - 120) * 0.015
+        + (frisk - 60) * 0.015
+        + (prim - 30) * 0.012
+        + ((trykk + 270) / 100) * 0.3,
+        2
+    )
 
-st.write(f"### Beregnet fukt etter tørke: **{fukt} %**")
+# Søk etter beste kombinasjon
+beste_diff = 10
+beste_kombinasjon = None
 
-# Varslinger
-if temp_til_tork > 460:
-    st.warning("🚨 Høy røykgasstemperatur – vannsprøyting kan slå inn.")
-if trykk_ovn > -100:
-    st.warning("⚠️ Svakt undertrykk – sjekk trekk, spjeld eller forbrenning.")
-if fukt > 2.5:
-    st.error("⚠️ For høy fukt – vurder mindre friskluft eller høyere temp.")
-elif fukt < 1.2:
-    st.warning("⚠️ For tørr spon – vurder å senke tørkekraft eller øke friskluft.")
-else:
-    st.success("✅ Fuktverdi er innenfor målområdet.")
+for g105 in range(350, 461, 5):       # Røyktemp til tørk
+    for g106 in range(130, 161, 5):   # Røyktemp ut tørk
+        for frisk in range(45, 66, 3):
+            for prim in range(20, 41, 3):
+                for trykk in range(-290, -249, 5):
+                    fukt = beregn_fukt(g105, g106, frisk, prim, trykk)
+                    diff = abs(fukt - target_fukt)
+                    if diff < beste_diff:
+                        beste_diff = diff
+                        beste_kombinasjon = (g105, g106, frisk, prim, trykk, fukt)
 
-st.caption("Sensorverdier: G80GTxxx, GS5P101, GS5F101, G80GP101 (Pa). Neste steg: AI-trening.")
+# Vis forslag
+if beste_kombinasjon:
+    g105, g106, frisk, prim, trykk, fukt = beste_kombinasjon
+    st.subheader("🔧 Forslag til innstillinger:")
+    st.write(f"G80GT105 – Temp til tørk: **{g105} °C**")
+    st.write(f"G80GT106 – Temp ut av tørk: **{g106} °C**")
+    st.write(f"GS5P101 – Friskluftspjeld: **{frisk} %**")
+    st.write(f"GS5F101 – Primærluft: **{prim} %**")
+    st.write(f"G80GP101 – Tryckugn: **{trykk} Pa**")
+    st.success(f"👉 Forventet fukt: **{fukt} %**")
