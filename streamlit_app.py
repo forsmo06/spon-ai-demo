@@ -35,10 +35,9 @@ with col1:
 
     bruk_ai = st.checkbox("⚙️ Bruk AI-forslag i innstillingene", value=False)
 
-    st.header("🤖 Automatisk beregning av optimale verdier")
-    auto_button = st.button("🔍 Finn innstillinger for ønsket fukt")
+    st.header("🧠 Smart justering: luft og mating først")
+    smartrun = st.button("🎯 Foreslå justeringer for å nå ønsket fukt")
 
-    # === Automatisk optimalisering ===
     def beregn_fukt(g105, g106, frisk, prim, trykk, hombak, maier):
         return round(
             3.0
@@ -52,29 +51,28 @@ with col1:
             2
         )
 
-    if auto_button:
-        best_combo = None
-        best_diff = float("inf")
-        for ut in range(130, 141):
-            for prim in range(10, 51, 5):
-                fukt = beregn_fukt(
-                    g105=400,
-                    g106=ut,
-                    frisk=60,
-                    prim=prim,
-                    trykk=-270,
-                    hombak=50,
-                    maier=50
-                )
-                diff = abs(fukt - ai_target_fukt)
-                if diff < best_diff:
-                    best_diff = diff
-                    best_combo = (ut, prim, fukt)
+    smart_justering = ""
 
-        if best_combo:
-            ai_temp_ut, ai_primluft, fukt_res = best_combo
-            st.success(f"Beste kombinasjon: Utløpstemp = {ai_temp_ut} °C, Primærluft = {ai_primluft} %, Beregnet fukt = {fukt_res:.2f}%")
-            bruk_ai = True
+    if smartrun:
+        # Simulert nåværende verdier
+        nå_fukt = beregn_fukt(400, 135, 60, 30, -270, 50, 50)
+        diff = round(ai_target_fukt - nå_fukt, 2)
+        smart_justering = ""
+
+        if abs(diff) < 0.05:
+            smart_justering = "✅ Du er allerede nær ønsket fukt. Ingen justering trengs."
+        else:
+            if diff > 0:
+                smart_justering += "🔼 Fukt er for lav – prøv dette:\n"
+                smart_justering += "• Øk hombak-mating med 5 %\n"
+                smart_justering += "• Senk primærluft med 5 %\n"
+            else:
+                smart_justering += "🔽 Fukt er for høy – prøv dette:\n"
+                smart_justering += "• Reduser hombak med 5 %\n"
+                smart_justering += "• Øk primærluft med 5 %\n"
+            smart_justering += "📉 Hvis det ikke virker etter én prøve, vurder å justere utløpstemp 1 °C"
+
+        st.code(smart_justering)
 
     st.header("🔧 Justeringer")
 
@@ -82,7 +80,7 @@ with col1:
     temp_til = st.slider("G80GT105 – Innløpstemp (°C)", 250, 700, ai_temp_til)
     temp_ut = st.slider("G80GT106 – Utløpstemp (°C)", 100, 180, ai_temp_ut)
     friskluft = st.slider("GS5P101 – Friskluft (Forbrenning av støv) (%)", 0, 100, ai_friskluft)
-    primluft = st.slider("GS5F101 – Primærluftsflekt (%)", 0, 100, ai_primluft if bruk_ai else 30)
+    primluft = st.slider("GS5F101 – Primærluftsflekt (%)", 0, 100, ai_primluft)
     trykkovn = st.slider("G80GP101 – Trykk ovn (Pa)", -500, 0, ai_trykkovn)
     hombak = st.slider("Utmating Hombak (%)", 0, 100, ai_hombak)
     maier = st.slider("Utmating Maier (%)", 0, 100, ai_maier)
