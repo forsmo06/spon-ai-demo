@@ -17,39 +17,40 @@ def lagre_prove(data):
 
 st.title("Logging av fuktprøver")
 
-# Inputfelter for prøvedata
-timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-ønsket_fukt = st.number_input("Ønsket fukt (%)", min_value=0.0, format="%.2f", value=1.36)
-beregnet_fukt = st.number_input("Beregnet fukt (%)", min_value=0.0, format="%.2f", value=1.25)
+# Inputfelt for prøvedata
+timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+onsket_fukt = st.number_input("Ønsket fukt (%)", min_value=0.0, format="%.2f", value=1.36)
+beregnet_fukt = st.number_input("Beregnet fukt (%)", min_value=0.0, format="%.2f", value=1.24)
 brennkammertemp = st.number_input("Brennkammertemp (°C)", value=790)
-innløpstemp = st.number_input("Innløpstemp (°C)", value=400)
-utløpstemp = st.number_input("Utløpstemp (°C)", value=135)
+innlopstemp = st.number_input("Innløpstemp (°C)", value=400)
+utlopstemp = st.number_input("Utløpstemp (°C)", value=135)
 friskluft = st.number_input("Friskluft (%)", value=12)
 primluft = st.number_input("Primærluft (%)", value=3)
 trykkovn = st.number_input("Trykk ovn (Pa)", value=-270)
-hombak = st.number_input("Utmating Hombak (%)", value=78)
-maier = st.number_input("Utmating Maier (%)", value=25)
+hombak = st.number_input("Utmatning Hombak (%)", value=78)
+maier = st.number_input("Utmatning Maier (%)", value=25)
 
 if st.button("Loggfør prøve"):
-    prøve = {
+    prove = {
         "timestamp": timestamp,
-        "ønsket_fukt": ønsket_fukt,
+        "onsket_fukt": onsket_fukt,
         "beregnet_fukt": beregnet_fukt,
         "brennkammertemp": brennkammertemp,
-        "innløpstemp": innløpstemp,
-        "utløpstemp": utløpstemp,
+        "innlopstemp": innlopstemp,
+        "utlopstemp": utlopstemp,
         "friskluft": friskluft,
         "primluft": primluft,
         "trykkovn": trykkovn,
         "hombak": hombak,
         "maier": maier,
     }
-    totalt = lagre_prove(prøve)
-    st.success(f"Prøve lagret! Totalt antall prøver: {totalt}")
+    antall = lagre_prove(prove)
+    st.success(f"Prøve lagret! Totalt {antall} prøver i loggen.")
 
-# Vis antall lagrede prøver
+# Vis tabell med lagrede prøver
 if os.path.exists(FILENAME):
-    df_vis = pd.read_csv(FILENAME)
-    st.write(f"Totalt antall prøver i loggen: {len(df_vis)}")
+    df = pd.read_csv(FILENAME)
+    st.subheader("Oversikt over lagrede prøver")
+    st.dataframe(df)
 else:
-    st.write("Ingen prøver lagret enda.")
+    st.info("Ingen prøver logget enda.")
