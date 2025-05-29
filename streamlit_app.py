@@ -1,15 +1,14 @@
 import streamlit as st
 import pandas as pd
 import os
+from datetime import datetime
 
 st.set_page_config(page_title="Sponavd AI styrt", layout="wide")
 
 st.title("🔧 Sponavd AI styrt")
 
-# Filnavn for lagring
 LOGG_FIL = "fuktlogg.csv"
 
-# Funksjoner for lagring og lesing av logg
 def loggfør_prøve(data_dict):
     if os.path.exists(LOGG_FIL):
         df_logg = pd.read_csv(LOGG_FIL)
@@ -26,9 +25,6 @@ def les_logg():
     else:
         return pd.DataFrame()
 
-# --- Input og justeringer ---
-st.header("Justeringer manuelt og via tekst")
-
 def slider_og_input(nøkkel, label, min_val, max_val, steg=1, format_str=None):
     if nøkkel not in st.session_state:
         st.session_state[nøkkel] = min_val
@@ -44,7 +40,9 @@ def slider_og_input(nøkkel, label, min_val, max_val, steg=1, format_str=None):
         st.session_state[nøkkel] = val_input
     return st.session_state[nøkkel]
 
-# Ønsket fukt - tekstfelt med desimal (string for å bruke komma)
+# --- Input og justeringer ---
+st.header("Justeringer manuelt og via tekst")
+
 ønsket_fukt_str = st.text_input("Ønsket fukt (%)", "1,36")
 try:
     ønsket_fukt = float(ønsket_fukt_str.replace(",", "."))
@@ -59,14 +57,14 @@ primaerluft = slider_og_input("primaerluft", "Primærluft (%)", 0, 100, steg=1)
 trykk_ovn = slider_og_input("trykk_ovn", "Trykk ovn (Pa)", -500, 0, steg=1)
 utmating_hombak = slider_og_input("utmating_hombak", "Utmating Hombak (%)", 0, 100, steg=1)
 utmating_maier = slider_og_input("utmating_maier", "Utmating Maier (%)", 0, 100, steg=1)
+forbrenning_stov = slider_og_input("forbrenning_stov", "Forbrenning av støv (%)", 0, 100, steg=1)
 
-# --- Beregning (dummy eksempel) ---
-# Bytt ut med din egen AI-modell eller formel
-def beregn_fukt(ønsket, brenn, inn, ut, primaer, trykk, hombak, maier):
-    # Dummy: tar ønsket fukt minus 0.1 prosent for demo
+# --- Dummy beregning ---
+def beregn_fukt(ønsket, brenn, inn, ut, primaer, trykk, hombak, maier, forbrenning):
+    # Eksempel: ønsket fukt minus en liten faktor
     return max(0, ønsket - 0.1)
 
-beregnet_fukt = beregn_fukt(ønsket_fukt, brennkammer_temp, innlop_temp, utlop_temp, primaerluft, trykk_ovn, utmating_hombak, utmating_maier)
+beregnet_fukt = beregn_fukt(ønsket_fukt, brennkammer_temp, innlop_temp, utlop_temp, primaerluft, trykk_ovn, utmating_hombak, utmating_maier, forbrenning_stov)
 
 # --- Vis resultat ---
 st.header("📈 Resultat")
@@ -88,11 +86,12 @@ if st.button("🔥 Loggfør denne prøven"):
         "trykk_ovn": trykk_ovn,
         "utmating_hombak": utmating_hombak,
         "utmating_maier": utmating_maier,
+        "forbrenning_stov": forbrenning_stov,
         "beregnet_fukt": beregnet_fukt,
     }
     loggfør_prøve(data_prøve)
 
-# --- Vis logg ---
+# --- Vis lagrede prøver ---
 st.header("Oversikt over lagrede prøver")
 df_logg = les_logg()
 if df_logg.empty:
