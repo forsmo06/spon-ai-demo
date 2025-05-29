@@ -1,125 +1,101 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime
-from sklearn.linear_model import LinearRegression
 
-st.set_page_config(layout="wide")
-st.title("📊 Fuktstyring – AI & Manuell (Ipaar-stil)")
+st.set_page_config(page_title="Sponavd AI styrt", layout="wide")
 
+st.title("🔧 Sponavd AI styrt")
+
+# Filnavn for lagring
 LOGG_FIL = "fuktlogg.csv"
 
-def logg_data(data):
-    df = pd.DataFrame([data])
-    if os.path.exists(LOGG_FIL):
-        df_existing = pd.read_csv(LOGG_FIL)
-        df = pd.concat([df_existing, df], ignore_index=True)
-    df.to_csv(LOGG_FIL, index=False)
-
-def tren_model(df):
-    nødvendig = ["brennkammertemp", "innløpstemp", "utløpstemp", "primluft", "trykkovn", "hombak", "maier", "ønsket_fukt"]
-    for col in nødvendig:
-        if col not in df.columns:
-            return None
-    df = df.dropna(subset=nødvendig)
-    if len(df) < 10:
-        return None
-    X = df[["brennkammertemp", "innløpstemp", "utløpstemp", "primluft", "trykkovn", "hombak", "maier"]]
-    y = df["ønsket_fukt"]
-    model = LinearRegression()
-    model.fit(X, y)
-    return model
-
-def beregn_fukt(model, data):
-    if model is None:
-        return None
-    df = pd.DataFrame([data])
-    return round(model.predict(df)[0], 2)
-
-def synced_slider_number(key, label, min_val, max_val, step, format_str):
-    # Initialiser state hvis ikke finnes
-    if key not in st.session_state:
-        st.session_state[key] = min_val
-
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        val = st.slider(label, min_val, max_val, st.session_state[key], step=step, key=key+"_slider")
-    with col2:
-        val_input = st.number_input(label + " (input)", min_val, max_val, st.session_state[key], step=step, format=format_str, key=key+"_number")
-
-    # Sync session_state
-    # Hvis slider ble endret:
-    if val != st.session_state[key]:
-        st.session_state[key] = val
-    # Hvis input ble endret:
-    elif val_input != st.session_state[key]:
-        st.session_state[key] = val_input
-
-    return st.session_state[key]
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.header("🔧 Justeringer manuelt og via tekst")
-
-    ønsket_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.36, key="ønsket_fukt")
-
-    brennkammer = synced_slider_number("brennkammer", "Brennkammertemp (°C)", 600, 1000, 1, "%d")
-    innløp = synced_slider_number("innløp", "Innløpstemp (°C)", 250, 700, 1, "%d")
-    utløp = synced_slider_number("utløp", "Utløpstemp (°C)", 100, 180, 1, "%d")
-    primluft = synced_slider_number("primluft", "Primærluft (%)", 0, 100, 1, "%d")
-    trykkovn = synced_slider_number("trykkovn", "Trykk ovn (Pa)", -500, 0, 1, "%d")
-    hombak = synced_slider_number("hombak", "Utmating Hombak (%)", 0, 100, 1, "%d")
-    maier = synced_slider_number("maier", "Utmating Maier (%)", 0, 100, 1, "%d")
-
-with col2:
-    st.header("📈 Resultat")
-
-    input_data = {
-        "brennkammertemp": brennkammer,
-        "innløpstemp": innløp,
-        "utløpstemp": utløp,
-        "primluft": primluft,
-        "trykkovn": trykkovn,
-        "hombak": hombak,
-        "maier": maier
-    }
-
+# Funksjoner for lagring og lesing av logg
+def loggfør_prøve(data_dict):
     if os.path.exists(LOGG_FIL):
         df_logg = pd.read_csv(LOGG_FIL)
     else:
         df_logg = pd.DataFrame()
+    df_logg = pd.concat([df_logg, pd.DataFrame([data_dict])], ignore_index=True)
+    df_logg.to_csv(LOGG_FIL, index=False)
+    st.success(f"Prøve loggført! Totalt lagret: {len(df_logg)} prøver.")
 
-    model = tren_model(df_logg)
-    beregnet_fukt = beregn_fukt(model, input_data)
-    beregnet_fukt = beregnet_fukt if beregnet_fukt is not None else 0
-
-    avvik = round(beregnet_fukt - ønsket_fukt, 2)
-
-    st.metric("🔹 Beregnet fukt", f"{beregnet_fukt:.2f} %")
-    st.metric("🎯 Ønsket fukt", f"{ønsket_fukt:.2f} %")
-    st.metric("➖ Avvik", f"{avvik:+.2f} %")
-
-    if st.button("📥 Loggfør denne prøven"):
-        data_logg = {
-            "timestamp": datetime.now().isoformat(),
-            "ønsket_fukt": ønsket_fukt,
-            "brennkammertemp": input_data["brennkammertemp"],
-            "innløpstemp": input_data["innløpstemp"],
-            "utløpstemp": input_data["utløpstemp"],
-            "primluft": input_data["primluft"],
-            "trykkovn": input_data["trykkovn"],
-            "hombak": input_data["hombak"],
-            "maier": input_data["maier"],
-            "beregnet_fukt": beregnet_fukt
-        }
-        logg_data(data_logg)
-        st.success("✅ Prøve lagret!")
-
-    st.write("---")
-    st.subheader("Oversikt over lagrede prøver")
-
-    if not df_logg.empty:
-        st.dataframe(df_logg)
+def les_logg():
+    if os.path.exists(LOGG_FIL):
+        df_logg = pd.read_csv(LOGG_FIL)
+        return df_logg
     else:
-        st.write("Ingen prøver loggført ennå.")
+        return pd.DataFrame()
+
+# --- Input og justeringer ---
+st.header("Justeringer manuelt og via tekst")
+
+def slider_og_input(nøkkel, label, min_val, max_val, steg=1, format_str=None):
+    if nøkkel not in st.session_state:
+        st.session_state[nøkkel] = min_val
+    col1, col2 = st.columns([3,1])
+    with col1:
+        val = st.slider(label, min_val, max_val, st.session_state[nøkkel], step=steg)
+    with col2:
+        val_input = st.number_input(label + " (input)", min_val, max_val, st.session_state[nøkkel], step=steg, format=format_str)
+    # Synkroniser begge veier
+    if val != st.session_state[nøkkel]:
+        st.session_state[nøkkel] = val
+    if val_input != st.session_state[nøkkel]:
+        st.session_state[nøkkel] = val_input
+    return st.session_state[nøkkel]
+
+# Ønsket fukt - tekstfelt med desimal (string for å bruke komma)
+ønsket_fukt_str = st.text_input("Ønsket fukt (%)", "1,36")
+try:
+    ønsket_fukt = float(ønsket_fukt_str.replace(",", "."))
+except:
+    ønsket_fukt = 0.0
+    st.error("Ugyldig format på ønsket fukt. Bruk punktum eller komma som desimal.")
+
+brennkammer_temp = slider_og_input("brennkammer_temp", "Brennkammertemp (°C)", 600, 1000, steg=1)
+innlop_temp = slider_og_input("innlop_temp", "Innløpstemp (°C)", 250, 700, steg=1)
+utlop_temp = slider_og_input("utlop_temp", "Utløpstemp (°C)", 100, 180, steg=1)
+primaerluft = slider_og_input("primaerluft", "Primærluft (%)", 0, 100, steg=1)
+trykk_ovn = slider_og_input("trykk_ovn", "Trykk ovn (Pa)", -500, 0, steg=1)
+utmating_hombak = slider_og_input("utmating_hombak", "Utmating Hombak (%)", 0, 100, steg=1)
+utmating_maier = slider_og_input("utmating_maier", "Utmating Maier (%)", 0, 100, steg=1)
+
+# --- Beregning (dummy eksempel) ---
+# Bytt ut med din egen AI-modell eller formel
+def beregn_fukt(ønsket, brenn, inn, ut, primaer, trykk, hombak, maier):
+    # Dummy: tar ønsket fukt minus 0.1 prosent for demo
+    return max(0, ønsket - 0.1)
+
+beregnet_fukt = beregn_fukt(ønsket_fukt, brennkammer_temp, innlop_temp, utlop_temp, primaerluft, trykk_ovn, utmating_hombak, utmating_maier)
+
+# --- Vis resultat ---
+st.header("📈 Resultat")
+
+col_res1, col_res2, col_res3 = st.columns(3)
+col_res1.metric("Beregned fukt", f"{beregnet_fukt:.2f} %")
+col_res2.metric("Ønsket fukt", f"{ønsket_fukt:.2f} %")
+avvik = ønsket_fukt - beregnet_fukt
+col_res3.metric("Avvik", f"{avvik:.2f} %")
+
+# --- Loggføring ---
+if st.button("🔥 Loggfør denne prøven"):
+    data_prøve = {
+        "onsket_fukt": ønsket_fukt,
+        "brennkammer_temp": brennkammer_temp,
+        "innlop_temp": innlop_temp,
+        "utlop_temp": utlop_temp,
+        "primaerluft": primaerluft,
+        "trykk_ovn": trykk_ovn,
+        "utmating_hombak": utmating_hombak,
+        "utmating_maier": utmating_maier,
+        "beregnet_fukt": beregnet_fukt,
+    }
+    loggfør_prøve(data_prøve)
+
+# --- Vis logg ---
+st.header("Oversikt over lagrede prøver")
+df_logg = les_logg()
+if df_logg.empty:
+    st.write("Ingen prøver loggført ennå.")
+else:
+    st.dataframe(df_logg)
