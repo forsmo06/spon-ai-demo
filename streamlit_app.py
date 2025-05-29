@@ -1,62 +1,105 @@
 import streamlit as st
-import base64
+import pandas as pd
+import os
+from datetime import datetime
+from sklearn.linear_model import LinearRegression
 
-def get_base64_of_bin_file(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+st.set_page_config(layout="wide")
+st.title("📊 Fuktstyring – AI & Manuell (Ipaar-stil)")
 
-image_path = 'd84f4086-7c88-4aeb-9eb0-6a0cc8b79dd8.png'
-img_base64 = get_base64_of_bin_file(image_path)
+LOGG_FIL = "fuktlogg.csv"
 
-page_bg_img = f'''
-<style>
-[data-testid="stAppViewContainer"] {{
-background-image: url("data:image/png;base64,{img_base64}");
-background-size: cover;
-background-position: center;
-background-repeat: no-repeat;
-background-attachment: fixed;
-}}
-</style>
-'''
+def logg_data(data):
+    df = pd.DataFrame([data])
+    if os.path.exists(LOGG_FIL):
+        df_existing = pd.read_csv(LOGG_FIL)
+        df = pd.concat([df_existing, df], ignore_index=True)
+    df.to_csv(LOGG_FIL, index=False)
 
-st.markdown(page_bg_img, unsafe_allow_html=True)
+def tren_model(df):
+    # Sjekk at alle nødvendige kolonner finnes
+    nødvendig = ["brennkammertemp", "innløpstemp", "utløpstemp", "primluft", "trykkovn", "hombak", "maier", "ønsket_fukt"]
+    for col in nødvendig:
+        if col not in df.columns:
+            st.error(f"Mangler kolonne: {col}")
+            return None
+    df = df.dropna(subset=nødvendig)
+    if len(df) < 10:
+        return None
+    X = df[["brennkammertemp", "innløpstemp", "utløpstemp", "primluft", "trykkovn", "hombak", "maier"]]
+    y = df["ønsket_fukt"]
+    model = LinearRegression()
+    model.fit(X, y)
+    return model
 
-st.title("🔧 Flisfyringsdashboard - Demo")
+def beregn_fukt(model, data):
+    if model is None:
+        return None
+    df = pd.DataFrame([data])
+    return round(model.predict(df)[0], 2)
 
-col1, col2, col3 = st.columns([3, 1, 2])
+col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("Flisfyringsovn")
-    temp = st.session_state.get('temp', 790)
-    st.markdown(f"""
-    <div style='
-        width: 300px; height: 400px; 
-        background: linear-gradient(to bottom, #555, #222);
-        border-radius: 20px; padding: 20px; color: white; font-weight: bold;
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
-        box-shadow: 0 0 15px #ff7e00;
-        '>
-        🔥 <br> Temperatur<br><span style='font-size: 40px;'>{temp}°C</span>
-    </div>
-    """, unsafe_allow_html=True)
+    st.header("🔧 Justeringer")
+
+    ønsket_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.36)
+    brennkammer = st.slider("Brennkammertemp (°C)", 600, 1000, 790)
+    innløp = st.slider("Innløpstemp (°C)", 250, 700, 400)
+    utløp = st.slider("Utløpstemp (°C)", 100, 180, 135)
+    primluft = st.slider("Primærluft (%)", 0, 100, 3)
+    trykkovn = st.slider("Trykk ovn (Pa)", -500, 0, -270)
+    hombak = st.slider("Utmating Hombak (%)", 0, 100, 78)
+    maier = st.slider("Utmating Maier (%)", 0, 100, 25)
 
 with col2:
-    st.subheader("Statuslamper")
+    st.header("📈 Resultat")
 
-    def lampe(navn, verdi, min_ok, max_ok):
-        farge = "green" if min_ok <= verdi <= max_ok else "red"
-        st.markdown(f"<div style='background:{farge}; padding:10px; border-radius:10px; margin-bottom:10px; color:white;'>{navn}: {verdi}</div>", unsafe_allow_html=True)
+    input_data = {
+        "brennkammertemp": brennkammer,
+        "innløpstemp": innløp,
+        "utløpstemp": utløp,
+        "primluft": primluft,
+        "trykkovn": trykkovn,
+        "hombak": hombak,
+        "maier": maier
+    }
 
-    lampe("Brennkammertemp", temp, 600, 1000)
-    lampe("Trykk ovn", st.session_state.get('trykk_ovn', -270), -500, 0)
+    if os.path.exists(LOGG_FIL):
+        df_logg = pd.read_csv(LOGG_FIL)
+    else:
+        df_logg = pd.DataFrame()
 
-with col3:
-    st.subheader("Juster parametre")
+    model = tren_model(df_logg)
+    beregnet_fukt = beregn_fukt(model, input_data)
+    beregnet_fukt = beregnet_fukt if beregnet_fukt is not None else 0
 
-    temp = st.slider("Brennkammertemp (°C)", 600, 1000, st.session_state.get('temp', 790))
-    trykk_ovn = st.slider("Trykk ovn (Pa)", -500, 0, st.session_state.get('trykk_ovn', -270))
+    avvik = round(beregnet_fukt - ønsket_fukt, 2)
 
-    st.session_state['temp'] = temp
-    st.session_state['trykk_ovn'] = trykk_ovn
+    st.metric("🔹 Beregnet fukt", f"{beregnet_fukt:.2f} %")
+    st.metric("🎯 Ønsket fukt", f"{ønsket_fukt:.2f} %")
+    st.metric("➖ Avvik", f"{avvik:+.2f} %")
+
+    if st.button("📥 Loggfør denne prøven"):
+        data_logg = {
+            "timestamp": datetime.now().isoformat(),
+            "ønsket_fukt": ønsket_fukt,
+            "brennkammertemp": brennkammer,
+            "innløpstemp": innløp,
+            "utløpstemp": utløp,
+            "primluft": primluft,
+            "trykkovn": trykkovn,
+            "hombak": hombak,
+            "maier": maier,
+            "beregnet_fukt": beregnet_fukt
+        }
+        logg_data(data_logg)
+        st.success("✅ Prøve lagret!")
+
+    st.write("---")
+    st.subheader("Oversikt over lagrede prøver")
+
+    if not df_logg.empty:
+        st.dataframe(df_logg)
+    else:
+        st.write("Ingen prøver loggført ennå.")
