@@ -36,6 +36,27 @@ def beregn_fukt(model, data):
     df = pd.DataFrame([data])
     return round(model.predict(df)[0], 2)
 
+def synced_slider_number(key, label, min_val, max_val, step, format_str):
+    # Initialiser state hvis ikke finnes
+    if key not in st.session_state:
+        st.session_state[key] = min_val
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        val = st.slider(label, min_val, max_val, st.session_state[key], step=step, key=key+"_slider")
+    with col2:
+        val_input = st.number_input(label + " (input)", min_val, max_val, st.session_state[key], step=step, format=format_str, key=key+"_number")
+
+    # Sync session_state
+    # Hvis slider ble endret:
+    if val != st.session_state[key]:
+        st.session_state[key] = val
+    # Hvis input ble endret:
+    elif val_input != st.session_state[key]:
+        st.session_state[key] = val_input
+
+    return st.session_state[key]
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -43,54 +64,25 @@ with col1:
 
     ønsket_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.36, key="ønsket_fukt")
 
-    brennkammer_slider = st.slider("Brennkammertemp (°C)", 600, 1000, 790, key="brennkammer_slider")
-    brennkammer_number = st.number_input("Brennkammertemp (°C) input", 600, 1000, 790, key="brennkammer_number")
-
-    innløp_slider = st.slider("Innløpstemp (°C)", 250, 700, 400, key="innløp_slider")
-    innløp_number = st.number_input("Innløpstemp (°C) input", 250, 700, 400, key="innløp_number")
-
-    utløp_slider = st.slider("Utløpstemp (°C)", 100, 180, 135, key="utløp_slider")
-    utløp_number = st.number_input("Utløpstemp (°C) input", 100, 180, 135, key="utløp_number")
-
-    primluft_slider = st.slider("Primærluft (%)", 0, 100, 3, key="primluft_slider")
-    primluft_number = st.number_input("Primærluft (%) input", 0, 100, 3, key="primluft_number")
-
-    trykkovn_slider = st.slider("Trykk ovn (Pa)", -500, 0, -270, key="trykkovn_slider")
-    trykkovn_number = st.number_input("Trykk ovn (Pa) input", -500, 0, -270, key="trykkovn_number")
-
-    hombak_slider = st.slider("Utmating Hombak (%)", 0, 100, 78, key="hombak_slider")
-    hombak_number = st.number_input("Utmating Hombak (%) input", 0, 100, 78, key="hombak_number")
-
-    maier_slider = st.slider("Utmating Maier (%)", 0, 100, 25, key="maier_slider")
-    maier_number = st.number_input("Utmating Maier (%) input", 0, 100, 25, key="maier_number")
-
-    # Sync slider and number input values manually:
-    if brennkammer_slider != brennkammer_number:
-        st.session_state.brennkammer_slider = brennkammer_number
-    if innløp_slider != innløp_number:
-        st.session_state.innløp_slider = innløp_number
-    if utløp_slider != utløp_number:
-        st.session_state.utløp_slider = utløp_number
-    if primluft_slider != primluft_number:
-        st.session_state.primluft_slider = primluft_number
-    if trykkovn_slider != trykkovn_number:
-        st.session_state.trykkovn_slider = trykkovn_number
-    if hombak_slider != hombak_number:
-        st.session_state.hombak_slider = hombak_number
-    if maier_slider != maier_number:
-        st.session_state.maier_slider = maier_number
+    brennkammer = synced_slider_number("brennkammer", "Brennkammertemp (°C)", 600, 1000, 1, "%d")
+    innløp = synced_slider_number("innløp", "Innløpstemp (°C)", 250, 700, 1, "%d")
+    utløp = synced_slider_number("utløp", "Utløpstemp (°C)", 100, 180, 1, "%d")
+    primluft = synced_slider_number("primluft", "Primærluft (%)", 0, 100, 1, "%d")
+    trykkovn = synced_slider_number("trykkovn", "Trykk ovn (Pa)", -500, 0, 1, "%d")
+    hombak = synced_slider_number("hombak", "Utmating Hombak (%)", 0, 100, 1, "%d")
+    maier = synced_slider_number("maier", "Utmating Maier (%)", 0, 100, 1, "%d")
 
 with col2:
     st.header("📈 Resultat")
 
     input_data = {
-        "brennkammertemp": st.session_state.brennkammer_slider,
-        "innløpstemp": st.session_state.innløp_slider,
-        "utløpstemp": st.session_state.utløp_slider,
-        "primluft": st.session_state.primluft_slider,
-        "trykkovn": st.session_state.trykkovn_slider,
-        "hombak": st.session_state.hombak_slider,
-        "maier": st.session_state.maier_slider
+        "brennkammertemp": brennkammer,
+        "innløpstemp": innløp,
+        "utløpstemp": utløp,
+        "primluft": primluft,
+        "trykkovn": trykkovn,
+        "hombak": hombak,
+        "maier": maier
     }
 
     if os.path.exists(LOGG_FIL):
