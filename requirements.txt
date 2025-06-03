@@ -2,3 +2,7 @@ streamlit
 scikit-learn
 pandas
 numpy
+streamlit
+pytesseract
+Pillow
+# …any other Python-only dependencies you need
