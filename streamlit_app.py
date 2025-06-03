@@ -15,7 +15,6 @@ col1, col2 = st.columns(2)
 
 # === Funksjon for logging av prøver ===
 LOGG_FIL = "fuktlogg.csv"
-MODELL_FIL = "fuktmodell.pkl"
 
 def logg_data(data):
     df = pd.DataFrame([data])
@@ -43,7 +42,6 @@ if lastet_bilde:
     tekst = pytesseract.image_to_string(bilde)
     st.sidebar.text_area("📄 Gjenkjent tekst", tekst)
 
-    # Prøv å hente ut tall automatisk
     import re
     tall = re.findall(r"[-+]?[0-9]*\.?[0-9]+", tekst)
     if len(tall) >= 8:
@@ -58,7 +56,7 @@ if lastet_bilde:
                 "hombak": int(float(tall[6])),
                 "maier": int(float(tall[7])),
             }
-            st.sidebar.success("✅ Forslag hentet ut fra bilde")
+            st.sidebar.success("✅ Forslag hentet fra bilde")
         except:
             st.sidebar.warning("⚠️ Klarte ikke tolke alle tall fra bildet")
 
@@ -68,14 +66,14 @@ with col1:
 
     target_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.36)
 
-    brennkammer = st.slider("Brennkammertemp (°C)", 600, 1000, ocr_data.get("brennkammertemp", 794))
-    temp_til = st.slider("Innløpstemp (G80GT105) (°C)", 250, 700, ocr_data.get("innløpstemp", 403))
-    temp_ut = st.slider("Utløpstemp (G80GT106) (°C)", 100, 180, ocr_data.get("utløpstemp", 133))
-    friskluft = st.slider("Forbrenning av støv – Friskluft (GS5P101) (%)", 0, 100, ocr_data.get("friskluft", 12))
-    primluft = st.slider("Primærluftsflekt (GS5F101) (%)", 0, 100, ocr_data.get("primluft", 3))
-    trykkovn = st.slider("Trykk ovn (G80GP101) (Pa)", -500, 0, ocr_data.get("trykkovn", -270))
-    hombak = st.slider("Utmating Hombak (%)", 0, 100, ocr_data.get("hombak", 78))
-    maier = st.slider("Utmating Maier (%)", 0, 100, ocr_data.get("maier", 25))
+    brennkammer = st.number_input("Brennkammertemp (°C)", 600, 1000, step=1, value=ocr_data.get("brennkammertemp", 794))
+    temp_til = st.number_input("Innløpstemp (°C)", 250, 700, step=1, value=ocr_data.get("innløpstemp", 403))
+    temp_ut = st.number_input("Utløpstemp (°C)", 100, 180, step=1, value=ocr_data.get("utløpstemp", 133))
+    friskluft = st.number_input("Forbrenning av støv – Friskluft (%)", 0, 100, step=1, value=ocr_data.get("friskluft", 12))
+    primluft = st.number_input("Primærluft (%)", 0, 100, step=1, value=ocr_data.get("primluft", 3))
+    trykkovn = st.number_input("Trykk ovn (Pa)", -500, 0, step=1, value=ocr_data.get("trykkovn", -270))
+    hombak = st.number_input("Utmating Hombak (%)", 0, 100, step=1, value=ocr_data.get("hombak", 78))
+    maier = st.number_input("Utmating Maier (%)", 0, 100, step=1, value=ocr_data.get("maier", 25))
 
 # === AI-BEREGNING ===
 def beregn_med_ai(data):
@@ -106,7 +104,7 @@ with col2:
     }
 
     ai_fukt = beregn_med_ai(input_data)
-    fukt = ai_fukt if ai_fukt is not None else 1.0  # fallback
+    fukt = ai_fukt if ai_fukt is not None else 1.0
     diff = round(fukt - target_fukt, 2)
 
     st.metric("🔹 Beregnet fukt", f"{fukt:.2f} %")
@@ -116,7 +114,7 @@ with col2:
     if temp_ut > 137 or temp_ut < 133:
         st.warning("⚠️ Utløpstemp utenfor mål for 22mm gulvplate (133–137 °C)")
     else:
-        st.success("✅ Utløpstemp OK for 22mm gulvplate")
+        st.success("✅ Utløpstemp OK")
 
     if trykkovn != -270:
         st.warning("ℹ️ Trykk ovn avviker fra anbefalt -270 Pa")
