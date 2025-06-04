@@ -75,6 +75,8 @@ with col1:
     if st.button("📥 Lagre måling"):
         # Lag input-ordbok for loggføring
         input_data = {
+            "timestamp": datetime.now().isoformat(),
+            "ønsket_fukt": target_fukt,
             "brennkammertemp": brennkammer,
             "innløpstemp": temp_til,
             "utløpstemp": temp_ut,
@@ -82,9 +84,7 @@ with col1:
             "primluft": primluft,
             "trykkovn": trykkovn,
             "hombak": hombak,
-            "maier": maier,
-            "ønsket_fukt": target_fukt,
-            "timestamp": datetime.now().isoformat()
+            "maier": maier
         }
         # Les eksisterende, legg til ny rad, skriv tilbake
         if os.path.exists(LOGG_FIL):
@@ -154,9 +154,22 @@ with col2:
     if temp_ut < 133 or temp_ut > 137:
         st.warning("⚠️ Utløpstemp utenfor mål (133–137 °C)")
     else:
-        st.success("✅ Utløpstemp OK")
+        st.success("✅ Utløpstemperatur OK")
 
     if trykkovn != -270:
         st.warning("ℹ️ Trykk ovn avviker fra -270 Pa")
     else:
         st.success("✅ Trykk ovn OK")
+
+# === Nederst: Vis alle lagrede tester i en Excel-lignende tabell ===
+st.markdown("---")
+st.subheader("📋 Alle lagrede prøver")
+
+if os.path.exists(LOGG_FIL):
+    df_vis = pd.read_csv(LOGG_FIL)
+    # Formater kolonner for bedre lesbarhet
+    df_vis["timestamp"] = pd.to_datetime(df_vis["timestamp"])
+    # Vis hele DataFrame interaktivt
+    st.dataframe(df_vis)
+else:
+    st.info("Ingen lagrede prøver ennå. Trykk 'Lagre måling' for å begynne å samle data.")
