@@ -31,7 +31,7 @@ if os.path.exists(LOGG_FIL):
 else:
     st.sidebar.info("📊 Ingen prøver funnet enda – AI ikke aktiv")
 
-# === VINSTRE SIDE: INNSTILLINGER (manuell inntasting) ===
+# === VENSTRE SIDE: INNSTILLINGER (manuell inntasting) ===
 col1, col2 = st.columns(2)
 with col1:
     st.header("🔧 Sponavd Manuell")
@@ -68,12 +68,14 @@ with col1:
 
 # === AI-BEREGNING ===
 def hent_trent_model():
-    from sklearn.externals import joblib
-    # joblib finnes ikke i nyeste sklearn, men om du har installert separat
-    # kan du endre til: import joblib
+    # Importer joblib direkte istedenfor via sklearn.externals
+    try:
+        import joblib
+    except ImportError:
+        return None
+
     if os.path.exists(MODELL_FIL):
         try:
-            import joblib
             return joblib.load(MODELL_FIL)
         except:
             return None
@@ -94,7 +96,6 @@ def tren_og_lagre_model():
     return model
 
 def beregn_med_ai(data):
-    # Hent modell om den finnes, ellers tren hvis nok data
     model = hent_trent_model()
     if model is None:
         if os.path.exists(LOGG_FIL):
