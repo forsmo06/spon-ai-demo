@@ -4,7 +4,6 @@ import pandas as pd
 import os
 from datetime import datetime
 from sklearn.linear_model import LinearRegression
-from pptx.util import Pt
 
 # === Konfigurasjon ===
 st.set_page_config(layout="wide")
