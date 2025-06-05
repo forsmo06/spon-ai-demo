@@ -1,57 +1,136 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
 import os
 from datetime import datetime
 from sklearn.linear_model import LinearRegression
+import joblib
 
 # === Konfigurasjon ===
 st.set_page_config(layout="wide")
-st.title("📊 Fuktstyring – AI & Manuell (Ipaar-stil)")
+st.title("📊 Fuktstyring – AI & Manuell (Ipar-stil)")
 
 LOGG_FIL = "fuktlogg.csv"
+MODELL_FIL = "fuktmodell.pkl"
 
-# === Logging av data ===
-def logg_data(data):
-    df = pd.DataFrame([data])
-    if os.path.exists(LOGG_FIL):
-        df_existing = pd.read_csv(LOGG_FIL)
-        df = pd.concat([df_existing, df], ignore_index=True)
-    df.to_csv(LOGG_FIL, index=False)
+# === Status i sidepanelet ===
+if os.path.exists(LOGG_FIL):
+    df_log = pd.read_csv(LOGG_FIL)
+    antall = len(df_log)
+    if antall < 10:
+        st.sidebar.info(f"📊 {antall} av 10 prøver – AI inaktiv")
+    else:
+        st.sidebar.success(f"🤖 AI aktiv (basert på {antall} prøver)")
+else:
+    st.sidebar.info("📊 Ingen prøver logget – AI inaktiv")
 
-# === AI-beregning ===
-def beregn_med_ai(data):
-    if not os.path.exists(LOGG_FIL):
-        return None
-    df = pd.read_csv(LOGG_FIL)
-    if len(df) < 10:
-        return None
-    X = df[["brennkammertemp", "innløpstemp", "utløpstemp", "friskluft", "primluft", "trykkovn", "hombak", "maier"]]
-    y = df["ønsket_fukt"]
-    model = LinearRegression().fit(X, y)
-    data_df = pd.DataFrame([data])
-    return round(model.predict(data_df)[0], 2)
-
-# === Layout ===
-col1, col2 = st.columns(2)
+# === Oppsett: To kolonner med ulik bredde ===
+col1, col2 = st.columns([3, 2])
 
 with col1:
-    st.header("🔧 Sponavd AI-styrt")
+    st.subheader("🔧 Innstillinger sponavd")
 
-    target_fukt = st.number_input("Ønsket fukt (%)", 0.5, 4.0, step=0.01, value=1.36)
+    target_fukt = st.number_input(
+        "Ønsket fukt (%)",
+        min_value=0.5, max_value=4.0, step=0.01, value=1.36,
+        help="Mål for fuktighet i ferdig plate"
+    )
 
-    brennkammer = st.slider("Brennkammertemp (°C)", 600, 1000, 794)
-    temp_til = st.slider("Innløpstemp (°C)", 250, 700, 403)
-    temp_ut = st.slider("Utløpstemp (°C)", 100, 180, 133)
-    friskluft = st.slider("Friskluft (%)", 0, 100, 12)
-    primluft = st.slider("Primærluft (%)", 0, 100, 3)
-    trykkovn = st.slider("Trykk ovn (Pa)", -500, 0, -270)
-    hombak = st.slider("Utmating Hombak (%)", 0, 100, 78)
-    maier = st.slider("Utmating Maier (%)", 0, 100, 25)
+    st.markdown("**Primære parametere**")
+    brennkammer = st.slider(
+        "Brennkammertemp (°C)", 600, 1000, 794,
+        help="Temperatur inne i brennkammeret"
+    )
+    temp_til = st.slider(
+        "Innløpstemp (G80GT105) (°C)", 250, 700, 403,
+        help="Temperatur inn i tørketrommel"
+    )
+    temp_ut = st.slider(
+        "Utløpstemp (G80GT106) (°C)", 100, 180, 133,
+        help="Temperatur ut av tørketrommel (for 22 mm plate: 133–137 °C)"
+    )
+
+    with st.expander("Avanserte parametere"):
+        friskluft = st.slider(
+            "Forbrenning av støv – Friskluft (GS5P101) (%)", 0, 100, 12,
+            help="Mengde friskluft til forbrenning av støv"
+        )
+        primluft = st.slider(
+            "Primærluftsflekt (GS5F101) (%)", 0, 100, 3,
+            help="Hovedluft til ovn"
+        )
+        trykkovn = st.slider(
+            "Trykk ovn (G80GP101) (Pa)", -500, 0, -270,
+            help="Negativt trykk i ovnsrommet"
+        )
+        hombak = st.slider(
+            "Utmating Hombak (%)", 0, 100, 78,
+            help="Mengde tørrspon som mates ut fra Hombak"
+        )
+        maier = st.slider(
+            "Utmating Maier (%)", 0, 100, 25,
+            help="Spon fra Maier-møllen"
+        )
+
+    st.markdown("---")
+    if st.button("📥 Lagre måling"):
+        # Lag input-ordbok for loggføring
+        input_data = {
+            "timestamp": datetime.now().isoformat(),
+            "ønsket_fukt": target_fukt,
+            "brennkammertemp": brennkammer,
+            "innløpstemp": temp_til,
+            "utløpstemp": temp_ut,
+            "friskluft": friskluft,
+            "primluft": primluft,
+            "trykkovn": trykkovn,
+            "hombak": hombak,
+            "maier": maier
+        }
+        # Les eksisterende, legg til ny rad, skriv tilbake
+        if os.path.exists(LOGG_FIL):
+            df_existing = pd.read_csv(LOGG_FIL)
+            df_combined = pd.concat([df_existing, pd.DataFrame([input_data])], ignore_index=True)
+        else:
+            df_combined = pd.DataFrame([input_data])
+        df_combined.to_csv(LOGG_FIL, index=False)
+        st.success("✅ Måling lagret i fuktlogg.csv")
 
 with col2:
-    st.header("📈 Resultat")
+    st.subheader("📈 Resultat")
 
+    # === Hjelpefunksjoner for AI-modellen ===
+    def hent_modell():
+        if os.path.exists(MODELL_FIL):
+            try:
+                return joblib.load(MODELL_FIL)
+            except:
+                return None
+        return None
+
+    def tren_modell():
+        df = pd.read_csv(LOGG_FIL)
+        if len(df) < 10:
+            return None
+        X = df[[
+            "brennkammertemp", "innløpstemp", "utløpstemp",
+            "friskluft", "primluft", "trykkovn", "hombak", "maier"
+        ]]
+        y = df["ønsket_fukt"]
+        m = LinearRegression().fit(X, y)
+        joblib.dump(m, MODELL_FIL)
+        return m
+
+    def beregn_ai(data):
+        modell = hent_modell()
+        if modell is None and os.path.exists(LOGG_FIL):
+            df = pd.read_csv(LOGG_FIL)
+            if len(df) >= 10:
+                modell = tren_modell()
+        if modell is None:
+            return None
+        return round(modell.predict(pd.DataFrame([data]))[0], 2)
+
+    # === Bygg input-ordbok til prediksjon ===
     input_data = {
         "brennkammertemp": brennkammer,
         "innløpstemp": temp_til,
@@ -63,70 +142,34 @@ with col2:
         "maier": maier
     }
 
-    ai_fukt = beregn_med_ai(input_data)
-    fukt = ai_fukt if ai_fukt is not None else 1.0
+    ai_fukt = beregn_ai(input_data)
+    fukt = ai_fukt if ai_fukt is not None else 1.00
     diff = round(fukt - target_fukt, 2)
 
-    st.metric("🔹 Beregnet fukt", f"{fukt:.2f} %")
-    st.metric("🎯 Ønsket fukt", f"{target_fukt:.2f} %")
-    st.metric("➖ Avvik", f"{diff:+.2f} %")
+    st.metric("🔹 Beregnet fukt", f"{fukt:.2f} %", delta_color="off")
+    st.metric("🎯 Ønsket fukt", f"{target_fukt:.2f} %", delta_color="off")
+    st.metric("➖ Avvik", f"{diff:+.2f} %", delta_color="normal")
 
-    if temp_ut > 137 or temp_ut < 133:
-        st.warning("⚠️ Utløpstemp utenfor mål for 22mm gulvplate (133–137 °C)")
+    # --- Enkle advarsler / bekreftelser ---
+    if temp_ut < 133 or temp_ut > 137:
+        st.warning("⚠️ Utløpstemp utenfor mål (133–137 °C)")
     else:
-        st.success("✅ Utløpstemp OK for 22mm gulvplate")
+        st.success("✅ Utløpstemperatur OK")
 
     if trykkovn != -270:
-        st.warning("ℹ️ Trykk ovn avviker fra anbefalt -270 Pa")
+        st.warning("ℹ️ Trykk ovn avviker fra -270 Pa")
     else:
         st.success("✅ Trykk ovn OK")
 
-    if st.button("📥 Loggfør denne prøven"):
-        logg_data({
-            "timestamp": datetime.now().isoformat(),
-            "ønsket_fukt": target_fukt,
-            "beregnet_fukt": fukt,
-            **input_data
-        })
-        st.success("✅ Prøve lagret")
+# === Nederst: Vis alle lagrede tester i en Excel-lignende tabell ===
+st.markdown("---")
+st.subheader("📋 Alle lagrede prøver")
 
-# === Vis historiske logger ===
-st.subheader("📚 Loggede prøver")
 if os.path.exists(LOGG_FIL):
-    df = pd.read_csv(LOGG_FIL)
-    st.dataframe(df.tail(10), use_container_width=True)
+    df_vis = pd.read_csv(LOGG_FIL)
+    # Formater kolonner for bedre lesbarhet
+    df_vis["timestamp"] = pd.to_datetime(df_vis["timestamp"])
+    # Vis hele DataFrame interaktivt
+    st.dataframe(df_vis)
 else:
-    st.info("Ingen prøver logget ennå.")
-
-# === Enkel AI-chat i hjørnet ===
-with st.expander("💬 Trenger du hjelp? Klikk her for å spørre!"):
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-
-    def hent_svar_fra_manual(sporsmal):
-        s = sporsmal.lower()
-        if "utløpstemp" in s:
-            return "Utløpstemp er temperaturen etter tørka. Den påvirker fuktigheten i spona."
-        elif "loggføre" in s:
-            return "For å loggføre en prøve, still inn verdiene og trykk på 'Loggfør denne prøven'-knappen."
-        elif "fukt for lav" in s or "fukta for lav" in s:
-            return "Hvis fukta er for lav, kan du senke utløpstemp eller redusere friskluft/innmating."
-        elif "starte tørka" in s:
-            return "Sjekk at systemet er i auto, og at alle verdier er innenfor grenser før du starter."
-        elif "hombak" in s:
-            return "Hombak er innmatingen for tørr spon. Juster den i prosent etter behov."
-        elif "maier" in s:
-            return "Maier er innmatingen for fuktig sagflis. Brukes mer ved lav innløpstemp."
-        elif "trykk" in s:
-            return "Trykk i ovnen skal ligge rundt -270 Pa. Går det mye utenfor, si ifra."
-        else:
-            return "Beklager, jeg forsto ikke spørsmålet helt. Prøv å stille det på en litt annen måte."
-
-    user_input = st.text_input("Skriv spørsmålet ditt her")
-    if user_input:
-        svar = hent_svar_fra_manual(user_input)
-        st.session_state.chat_history.append(("👤 Du", user_input))
-        st.session_state.chat_history.append(("🤖 Hjelperen", svar))
-
-    for rolle, melding in st.session_state.chat_history:
-        st.write(f"**{rolle}:** {melding}")
+    st.info("Ingen lagrede prøver ennå. Trykk 'Lagre måling' for å begynne å samle data.")
