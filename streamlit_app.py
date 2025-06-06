@@ -84,7 +84,7 @@ with col2:
         logg_data({
             "timestamp": datetime.now().isoformat(),
             "ønsket_fukt": target_fukt,
-            "beregnet_fukt": fukt,
+            "beregnet_fukt": ai_fukt if ai_fukt is not None else "",
             **input_data
         })
         st.success("✅ Prøve lagret")
