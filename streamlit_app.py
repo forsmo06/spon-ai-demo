@@ -1,4 +1,5 @@
 import streamlit as st
+import numpy as np
 import pandas as pd
 import os
 from datetime import datetime
@@ -90,21 +91,13 @@ with col2:
         st.success("✅ Prøve lagret")
 
 # === Vis historiske logger ===
-st.subheader("📚 Alle lagrede prøver")
+st.subheader("📚 Loggede prøver")
 if os.path.exists(LOGG_FIL):
     df = pd.read_csv(LOGG_FIL)
     st.dataframe(df.tail(10), use_container_width=True)
-
-    # === Last ned-knapp ===
-    csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        label="📤 Last ned hele fuktloggen som CSV",
-        data=csv,
-        file_name="fuktlogg.csv",
-        mime="text/csv"
-    )
+    st.download_button("📁 Last ned logg som CSV", data=df.to_csv(index=False), file_name="fuktlogg.csv", mime="text/csv")
 else:
-    st.info("Ingen prøver logget ennå. Trykk 'Loggfør denne prøven' for å starte.")
+    st.info("Ingen prøver logget ennå.")
 
 # === Enkel AI-chat i hjørnet ===
 with st.expander("💬 Trenger du hjelp? Klikk her for å spørre!"):
