@@ -84,7 +84,7 @@ with col2:
         logg_data({
             "timestamp": datetime.now().isoformat(),
             "ønsket_fukt": target_fukt,
-            "beregnet_fukt": ai_fukt if ai_fukt is not None else "",
+            "beregnet_fukt": fukt,
             **input_data
         })
         st.success("✅ Prøve lagret")
@@ -93,6 +93,7 @@ with col2:
 st.subheader("📚 Loggede prøver")
 if os.path.exists(LOGG_FIL):
     df = pd.read_csv(LOGG_FIL)
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")  # Fikset feil her
     st.dataframe(df.tail(10), use_container_width=True)
     st.download_button("⬇️ Last ned alle prøver som CSV", data=df.to_csv(index=False), file_name="fuktlogg.csv", mime="text/csv")
 else:
