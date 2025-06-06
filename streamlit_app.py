@@ -23,7 +23,7 @@ def beregn_med_ai(data):
     if not os.path.exists(LOGG_FIL):
         return None
     df = pd.read_csv(LOGG_FIL)
-    df = df.dropna()  # Fjern rader med manglende verdier
+    df = df.dropna()
     if len(df) < 10:
         return None
     X = df[["brennkammertemp", "innløpstemp", "utløpstemp", "friskluft", "primluft", "trykkovn", "hombak", "maier"]]
@@ -94,45 +94,7 @@ with col2:
 st.subheader("📚 Loggede prøver")
 if os.path.exists(LOGG_FIL):
     df = pd.read_csv(LOGG_FIL)
-    try:
-        df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-        df = df[df["timestamp"].notna()]
-    except:
-        st.warning("Kunne ikke tolke tidspunkt i loggfil. Viser rådata.")
     st.dataframe(df.tail(10), use_container_width=True)
     st.download_button("⬇️ Last ned alle prøver som CSV", data=df.to_csv(index=False), file_name="fuktlogg.csv", mime="text/csv")
 else:
     st.info("Ingen prøver logget ennå.")
-
-# === Enkel AI-chat i hjørnet ===
-with st.expander("💬 Trenger du hjelp? Klikk her for å spørre!"):
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-
-    def hent_svar_fra_manual(sporsmal):
-        s = sporsmal.lower()
-        if "utløpstemp" in s:
-            return "Utløpstemp er temperaturen etter tørka. Den påvirker fuktigheten i spona."
-        elif "loggføre" in s:
-            return "For å loggføre en prøve, still inn verdiene og trykk på 'Loggfør denne prøven'-knappen."
-        elif "fukt for lav" in s or "fukta for lav" in s:
-            return "Hvis fukta er for lav, kan du senke utløpstemp eller redusere friskluft/innmating."
-        elif "starte tørka" in s:
-            return "Sjekk at systemet er i auto, og at alle verdier er innenfor grenser før du starter."
-        elif "hombak" in s:
-            return "Hombak er innmatingen for tørr spon. Juster den i prosent etter behov."
-        elif "maier" in s:
-            return "Maier er innmatingen for fuktig sagflis. Brukes mer ved lav innløpstemp."
-        elif "trykk" in s:
-            return "Trykk i ovnen skal ligge rundt -270 Pa. Går det mye utenfor, si ifra."
-        else:
-            return "Beklager, jeg forsto ikke spørsmålet helt. Prøv å stille det på en litt annen måte."
-
-    user_input = st.text_input("Skriv spørsmålet ditt her")
-    if user_input:
-        svar = hent_svar_fra_manual(user_input)
-        st.session_state.chat_history.append(("👤 Du", user_input))
-        st.session_state.chat_history.append(("🤖 Hjelperen", svar))
-
-    for rolle, melding in st.session_state.chat_history:
-        st.write(f"**{rolle}:** {melding}")
