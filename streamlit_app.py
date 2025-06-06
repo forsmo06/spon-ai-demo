@@ -1,5 +1,4 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
 import os
 from datetime import datetime
@@ -95,7 +94,7 @@ st.subheader("📚 Loggede prøver")
 if os.path.exists(LOGG_FIL):
     df = pd.read_csv(LOGG_FIL)
     st.dataframe(df.tail(10), use_container_width=True)
-    st.download_button("📁 Last ned logg som CSV", data=df.to_csv(index=False), file_name="fuktlogg.csv", mime="text/csv")
+    st.download_button("⬇️ Last ned alle prøver som CSV", data=df.to_csv(index=False), file_name="fuktlogg.csv", mime="text/csv")
 else:
     st.info("Ingen prøver logget ennå.")
 
