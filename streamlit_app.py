@@ -23,7 +23,7 @@ def beregn_med_ai(data):
     if not os.path.exists(LOGG_FIL):
         return None
     df = pd.read_csv(LOGG_FIL)
-    df = df.dropna()  # Fjern rader som mangler verdier
+    df = df.dropna()  # Fjern rader med manglende verdier
     if len(df) < 10:
         return None
     X = df[["brennkammertemp", "innløpstemp", "utløpstemp", "friskluft", "primluft", "trykkovn", "hombak", "maier"]]
@@ -94,7 +94,10 @@ with col2:
 st.subheader("📚 Loggede prøver")
 if os.path.exists(LOGG_FIL):
     df = pd.read_csv(LOGG_FIL)
-    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+    try:
+        df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+    except:
+        st.warning("Kunne ikke tolke tidspunkt i loggfil. Viser rådata.")
     st.dataframe(df.tail(10), use_container_width=True)
     st.download_button("⬇️ Last ned alle prøver som CSV", data=df.to_csv(index=False), file_name="fuktlogg.csv", mime="text/csv")
 else:
